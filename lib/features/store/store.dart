@@ -1,0 +1,11 @@
+export 'models/store.dart';
+export 'navigation/store_navigation.dart';
+export 'presentation/store_detail_page.dart';
+export 'providers/store_providers.dart';
+export 'repository/local_store_repository.dart';
+export 'repository/mock_store_repository.dart';
+export 'repository/store_repository.dart';
+export 'state/store_state.dart';
+export 'widgets/store_detail_view.dart';
+export 'widgets/store_header.dart';
+export 'widgets/store_product_grid.dart';

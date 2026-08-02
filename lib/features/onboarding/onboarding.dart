@@ -1,0 +1,12 @@
+export 'models/onboarding_page_data.dart';
+export 'navigation/onboarding_navigation.dart';
+export 'presentation/onboarding_page.dart';
+export 'providers/onboarding_providers.dart';
+export 'repository/local_onboarding_repository.dart';
+export 'repository/mock_onboarding_repository.dart';
+export 'repository/onboarding_repository.dart';
+export 'state/onboarding_state.dart';
+export 'widgets/onboarding_actions.dart';
+export 'widgets/onboarding_page_indicator.dart';
+export 'widgets/onboarding_slide.dart';
+export 'widgets/onboarding_view.dart';

@@ -1,0 +1,10 @@
+export 'models/splash_bootstrap_result.dart';
+export 'navigation/splash_navigation.dart';
+export 'presentation/splash_page.dart';
+export 'providers/splash_providers.dart';
+export 'repository/local_splash_repository.dart';
+export 'repository/mock_splash_repository.dart';
+export 'repository/splash_repository.dart';
+export 'state/splash_state.dart';
+export 'widgets/splash_logo.dart';
+export 'widgets/splash_view.dart';

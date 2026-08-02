@@ -1,0 +1,13 @@
+export 'models/product.dart';
+export 'models/review.dart';
+export 'navigation/product_navigation.dart';
+export 'presentation/product_detail_page.dart';
+export 'providers/product_providers.dart';
+export 'repository/local_product_repository.dart';
+export 'repository/mock_product_repository.dart';
+export 'repository/product_repository.dart';
+export 'state/product_detail_state.dart';
+export 'widgets/product_detail_view.dart';
+export 'widgets/product_gallery.dart';
+export 'widgets/product_info_section.dart';
+export 'widgets/product_sticky_bar.dart';

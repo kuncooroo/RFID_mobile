@@ -1,0 +1,17 @@
+export 'models/shell_badge_summary.dart';
+export 'models/shell_tab.dart';
+export 'navigation/shell_navigation.dart';
+export 'presentation/favorites_tab_page.dart';
+export 'presentation/home_tab_page.dart';
+export 'presentation/notifications_page.dart';
+export 'presentation/orders_tab_page.dart';
+export 'presentation/profile_tab_page.dart';
+export 'providers/shell_providers.dart';
+export 'repository/local_shell_repository.dart';
+export 'repository/mock_shell_repository.dart';
+export 'repository/shell_repository.dart';
+export 'state/shell_state.dart';
+export 'widgets/main_shell.dart';
+export 'widgets/shell_app_bar.dart';
+export 'widgets/shell_notification_tile.dart';
+export 'widgets/shell_tab_placeholder.dart';

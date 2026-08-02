@@ -1,0 +1,10 @@
+export 'models/favorite.dart';
+export 'navigation/favorites_navigation.dart';
+export 'presentation/favorites_page.dart';
+export 'providers/favorites_providers.dart';
+export 'repository/favorites_repository.dart';
+export 'repository/local_favorites_repository.dart';
+export 'repository/mock_favorites_repository.dart';
+export 'state/favorites_state.dart';
+export 'widgets/favorites_product_grid.dart';
+export 'widgets/favorites_view.dart';

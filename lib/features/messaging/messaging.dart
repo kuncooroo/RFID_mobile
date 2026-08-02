@@ -1,0 +1,16 @@
+export 'models/conversation.dart';
+export 'models/message.dart';
+export 'navigation/messaging_navigation.dart';
+export 'presentation/message_detail_page.dart';
+export 'presentation/messages_page.dart';
+export 'providers/messaging_providers.dart';
+export 'repository/local_messaging_repository.dart';
+export 'repository/messaging_repository.dart';
+export 'repository/mock_messaging_repository.dart';
+export 'state/message_detail_state.dart';
+export 'state/messaging_state.dart';
+export 'widgets/conversation_tile.dart';
+export 'widgets/message_bubble.dart';
+export 'widgets/message_composer.dart';
+export 'widgets/message_detail_view.dart';
+export 'widgets/messages_view.dart';
