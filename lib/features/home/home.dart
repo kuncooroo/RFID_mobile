@@ -7,7 +7,6 @@ export 'repository/home_repository.dart';
 export 'repository/local_home_repository.dart';
 export 'repository/mock_home_repository.dart';
 export 'state/home_state.dart';
-export 'widgets/home_category_strip.dart';
 export 'widgets/home_product_grid.dart';
 export 'widgets/home_promo_section.dart';
 export 'widgets/home_segment_tabs.dart';

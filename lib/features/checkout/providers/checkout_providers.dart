@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../cart/providers/cart_providers.dart';
+import '../../orders/models/order.dart';
+import '../../orders/providers/orders_providers.dart';
 import '../models/address.dart';
 import '../models/payment_method.dart';
 import '../repository/checkout_repository.dart';
@@ -111,12 +113,66 @@ class CheckoutController extends Notifier<CheckoutState> {
 
     state = state.copyWith(placingOrder: true, clearError: true);
     try {
+      final subtotal = cartState.selectedSubtotal;
+      const shippingFee = 0.0;
+      final total = subtotal + shippingFee;
+
       final orderId = await ref.read(checkoutRepositoryProvider).placeOrder(
         addressId: addressId,
         paymentMethodId: paymentId,
         cartItemIds: selectedItems.map((item) => item.id).toList(),
-        total: cartState.selectedSubtotal,
+        total: total,
       );
+
+      Address? address;
+      for (final candidate in state.addresses) {
+        if (candidate.id == addressId) {
+          address = candidate;
+          break;
+        }
+      }
+
+      final placedAt = DateTime.now();
+      final rawId = orderId.replaceFirst(
+        RegExp(r'^ord-', caseSensitive: false),
+        '',
+      );
+      final orderNumber = orderId.toUpperCase().startsWith('KU-')
+          ? orderId.toUpperCase()
+          : 'KU-$rawId';
+
+      final order = Order(
+        id: orderId,
+        orderNumber: orderNumber,
+        status: OrderStatus.paid,
+        total: total,
+        subtotal: subtotal,
+        shippingFee: shippingFee,
+        currency: cartState.cart.currency,
+        addressId: addressId,
+        shippingAddressLabel: address?.oneLineLabel,
+        paymentMethodId: paymentId,
+        placedAt: placedAt,
+        updatedAt: placedAt,
+        items: [
+          for (final item in selectedItems)
+            OrderItem(
+              id: 'oi-${item.id}',
+              productId: item.productId,
+              name: item.name,
+              unitPrice: item.unitPrice,
+              quantity: item.quantity,
+              imageUrl: item.imageUrl,
+              variantLabel: _variantLabel(item.colorName, item.size),
+            ),
+        ],
+        tracking: buildInitialTracking(orderId: orderId, placedAt: placedAt),
+      );
+
+      await ref.read(ordersRepositoryProvider).createOrder(order);
+      await ref.read(cartControllerProvider.notifier).removeSelectedItems();
+      await ref.read(ordersControllerProvider.notifier).reloadAfterCheckout();
+
       state = state.copyWith(
         placingOrder: false,
         placedOrderId: orderId,
@@ -148,4 +204,13 @@ PaymentMethod? _defaultPaymentMethod(List<PaymentMethod> methods) {
     if (method.isDefault) return method;
   }
   return methods.isNotEmpty ? methods.first : null;
+}
+
+String? _variantLabel(String? colorName, String? size) {
+  final parts = <String>[
+    if (colorName != null && colorName.trim().isNotEmpty) colorName.trim(),
+    if (size != null && size.trim().isNotEmpty) size.trim(),
+  ];
+  if (parts.isEmpty) return null;
+  return parts.join(' / ');
 }

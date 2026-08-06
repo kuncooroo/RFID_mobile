@@ -5,6 +5,7 @@ import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/widgets/app_image.dart';
 import '../models/order.dart';
 
@@ -59,7 +60,7 @@ class OrderItemRow extends StatelessWidget {
               ),
             ),
             Text(
-              '\$${item.lineTotal.toStringAsFixed(0)}',
+              formatMoney(item.lineTotal),
               style: AppTextStyles.price,
             ),
           ],

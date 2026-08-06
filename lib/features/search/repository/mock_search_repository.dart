@@ -2,7 +2,7 @@ import '../../product/models/product.dart';
 import '../models/search_filter.dart';
 import 'search_repository.dart';
 
-/// Seeded search repository for tests and UI demos.
+/// Seeded search repository for tests and UI demos (Figma Search / Filter).
 class MockSearchRepository implements SearchRepository {
   MockSearchRepository({
     this.delay = const Duration(milliseconds: 350),
@@ -13,14 +13,15 @@ class MockSearchRepository implements SearchRepository {
   final bool shouldFail;
   final List<String> _recentQueries;
   final List<Product> _products = List<Product>.from(_seedProducts);
+  final Set<String> _favoriteIds = {};
 
-  static const filterColors = <({String id, String name, String hex})>[
-    (id: 'black', name: 'Black', hex: '#1A1A1A'),
-    (id: 'white', name: 'White', hex: '#F5F5F5'),
-    (id: 'red', name: 'Red', hex: '#E53935'),
-    (id: 'blue', name: 'Blue', hex: '#1E88E5'),
-    (id: 'green', name: 'Green', hex: '#43A047'),
-    (id: 'purple', name: 'Purple', hex: '#514EB7'),
+  static const filterColors = <SearchColorOption>[
+    SearchColorOption(id: 'black', name: 'Black', hex: '#1A1A1A'),
+    SearchColorOption(id: 'white', name: 'White', hex: '#F5F5F5'),
+    SearchColorOption(id: 'red', name: 'Red', hex: '#E53935'),
+    SearchColorOption(id: 'blue', name: 'Blue', hex: '#1E88E5'),
+    SearchColorOption(id: 'green', name: 'Green', hex: '#43A047'),
+    SearchColorOption(id: 'purple', name: 'Purple', hex: '#514EB7'),
   ];
 
   static const filterLocations = <String>[
@@ -36,6 +37,13 @@ class MockSearchRepository implements SearchRepository {
     await Future<void>.delayed(delay);
     if (shouldFail) throw StateError('Unable to load recent searches');
     return List<String>.unmodifiable(_recentQueries);
+  }
+
+  @override
+  Future<List<String>> fetchPopular() async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (shouldFail) throw StateError('Unable to load popular searches');
+    return List<String>.unmodifiable(_seedPopularQueries);
   }
 
   @override
@@ -58,8 +66,23 @@ class MockSearchRepository implements SearchRepository {
         .where((q) => q.toLowerCase().contains(trimmed))
         .toList();
 
-    final combined = <String>{...recentHints, ...productHints};
+    final popularHints = _seedPopularQueries
+        .where((q) => q.toLowerCase().contains(trimmed))
+        .toList();
+
+    final combined = <String>{...recentHints, ...popularHints, ...productHints};
     return combined.take(8).toList();
+  }
+
+  @override
+  Future<SearchFilterOptions> fetchFilterOptions() async {
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    return const SearchFilterOptions(
+      colors: filterColors,
+      locations: filterLocations,
+      minPrice: 0,
+      maxPrice: 300,
+    );
   }
 
   @override
@@ -85,6 +108,10 @@ class MockSearchRepository implements SearchRepository {
       results = results
           .where((p) => p.categoryId == filter.categoryId)
           .toList();
+    }
+
+    if (filter.storeId != null && filter.storeId!.isNotEmpty) {
+      results = results.where((p) => p.storeId == filter.storeId).toList();
     }
 
     if (filter.minPrice != null) {
@@ -114,7 +141,11 @@ class MockSearchRepository implements SearchRepository {
     }
 
     results = _sortResults(results, filter.sort);
-    return List<Product>.unmodifiable(results);
+    return List<Product>.unmodifiable(
+      results.map(
+        (p) => p.copyWith(isFavorite: _favoriteIds.contains(p.id)),
+      ),
+    );
   }
 
   @override
@@ -139,6 +170,15 @@ class MockSearchRepository implements SearchRepository {
   Future<void> removeRecentQuery(String query) async {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     _recentQueries.removeWhere((q) => q == query);
+  }
+
+  @override
+  Future<void> toggleFavorite(String productId) async {
+    if (_favoriteIds.contains(productId)) {
+      _favoriteIds.remove(productId);
+    } else {
+      _favoriteIds.add(productId);
+    }
   }
 
   List<Product> _sortResults(List<Product> items, SearchSort sort) {
@@ -167,6 +207,14 @@ const _seedRecentQueries = <String>[
   'boots',
 ];
 
+const _seedPopularQueries = <String>[
+  'new arrivals',
+  'summer dress',
+  'running shoes',
+  'tote bag',
+  'leather jacket',
+];
+
 const _productLocations = <String, List<String>>{
   'p1': ['Jakarta', 'Bandung'],
   'p2': ['Jakarta', 'Surabaya'],
@@ -185,6 +233,7 @@ const _seedProducts = <Product>[
     brand: 'Maison Noir',
     price: 128,
     categoryId: 'cat-bags',
+    storeId: 'store-maison-noir',
     rating: 4.8,
     reviewCount: 124,
     stock: 12,
@@ -201,6 +250,7 @@ const _seedProducts = <Product>[
     price: 210,
     discountPrice: 179,
     categoryId: 'cat-fashion',
+    storeId: 'store-urban-lab',
     rating: 4.6,
     reviewCount: 89,
     stock: 8,
@@ -216,6 +266,7 @@ const _seedProducts = <Product>[
     brand: 'Stride',
     price: 96,
     categoryId: 'cat-shoes',
+    storeId: 'store-urban-lab',
     rating: 4.5,
     reviewCount: 210,
     stock: 20,
@@ -231,6 +282,7 @@ const _seedProducts = <Product>[
     brand: 'Luma',
     price: 48,
     categoryId: 'cat-fashion',
+    storeId: 'store-maison-noir',
     rating: 4.7,
     reviewCount: 56,
     stock: 30,
@@ -246,6 +298,7 @@ const _seedProducts = <Product>[
     brand: 'Carry Co',
     price: 74,
     categoryId: 'cat-bags',
+    storeId: 'store-maison-noir',
     rating: 4.4,
     reviewCount: 41,
     stock: 15,
@@ -261,6 +314,7 @@ const _seedProducts = <Product>[
     brand: 'Bloom',
     price: 36,
     categoryId: 'cat-beauty',
+    storeId: 'store-urban-lab',
     rating: 4.9,
     reviewCount: 302,
     stock: 50,
@@ -276,6 +330,7 @@ const _seedProducts = <Product>[
     brand: 'Stride',
     price: 145,
     categoryId: 'cat-shoes',
+    storeId: 'store-urban-lab',
     rating: 4.6,
     reviewCount: 77,
     stock: 9,
@@ -292,6 +347,7 @@ const _seedProducts = <Product>[
     price: 58,
     discountPrice: 49,
     categoryId: 'cat-fashion',
+    storeId: 'store-maison-noir',
     rating: 4.3,
     reviewCount: 63,
     stock: 22,

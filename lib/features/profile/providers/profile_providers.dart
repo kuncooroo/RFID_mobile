@@ -16,7 +16,7 @@ const bool kUseMockProfileRepository = bool.fromEnvironment(
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   if (kUseMockProfileRepository) {
-    return MockProfileRepository();
+    return MockProfileRepository.shared;
   }
 
   final user = ref
@@ -83,15 +83,19 @@ class EditProfileController extends Notifier<EditProfileState> {
     required String displayName,
     required String email,
     String? phone,
+    String? avatarUrl,
   }) async {
     state = state.copyWith(
       status: ProfileFormStatus.submitting,
       clearError: true,
     );
     try {
-      await ref
-          .read(profileRepositoryProvider)
-          .updateProfile(displayName: displayName, email: email, phone: phone);
+      await ref.read(profileRepositoryProvider).updateProfile(
+            displayName: displayName,
+            email: email,
+            phone: phone,
+            avatarUrl: avatarUrl,
+          );
       await ref.read(profileControllerProvider.notifier).refresh();
       ref.invalidate(currentUserProvider);
       state = state.copyWith(status: ProfileFormStatus.success);
@@ -103,6 +107,10 @@ class EditProfileController extends Notifier<EditProfileState> {
       );
       return false;
     }
+  }
+
+  void reset() {
+    state = const EditProfileState();
   }
 }
 
@@ -135,6 +143,10 @@ class ChangePasswordController extends Notifier<ChangePasswordState> {
       return false;
     }
   }
+
+  void reset() {
+    state = const ChangePasswordState();
+  }
 }
 
 class SettingsController extends Notifier<SettingsUiState> {
@@ -160,9 +172,9 @@ class SettingsController extends Notifier<SettingsUiState> {
     }
   }
 
-  Future<void> updateSettings(Settings settings) async {
+  Future<bool> updateSettings(Settings settings) async {
     final previous = state.settings;
-    state = state.copyWith(settings: settings);
+    state = state.copyWith(settings: settings, clearError: true);
     try {
       final saved = await ref
           .read(profileRepositoryProvider)
@@ -170,23 +182,69 @@ class SettingsController extends Notifier<SettingsUiState> {
       final languages = await ref
           .read(profileRepositoryProvider)
           .fetchLanguages();
-      state = state.copyWith(settings: saved, languages: languages);
+      state = state.copyWith(
+        status: ProfileStatus.ready,
+        settings: saved,
+        languages: languages,
+        clearError: true,
+      );
       await ref.read(profileControllerProvider.notifier).refresh();
+      return true;
     } catch (error) {
       state = state.copyWith(
         settings: previous,
         status: ProfileStatus.failure,
         errorMessage: error.toString(),
       );
+      return false;
     }
   }
 
-  Future<void> selectLanguage(LanguageOption option) async {
-    await updateSettings(
-      state.settings.copyWith(
-        languageCode: option.code,
-        languageLabel: option.label,
-      ),
+  Future<bool> selectLanguage(LanguageOption option) async {
+    final previous = state.settings;
+    final previousLanguages = state.languages;
+    final optimistic = state.settings.copyWith(
+      languageCode: option.code,
+      languageLabel: option.label,
     );
+    state = state.copyWith(
+      settings: optimistic,
+      languages: state.languages
+          .map(
+            (item) => item.copyWith(isSelected: item.code == option.code),
+          )
+          .toList(),
+      clearError: true,
+    );
+    try {
+      final saved = await ref
+          .read(profileRepositoryProvider)
+          .updateSettings(optimistic);
+      final languages = await ref
+          .read(profileRepositoryProvider)
+          .fetchLanguages();
+      state = state.copyWith(
+        status: ProfileStatus.ready,
+        settings: saved,
+        languages: languages,
+        clearError: true,
+      );
+      await ref.read(profileControllerProvider.notifier).refresh();
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        settings: previous,
+        languages: previousLanguages,
+        status: ProfileStatus.failure,
+        errorMessage: error.toString(),
+      );
+      return false;
+    }
+  }
+
+  Future<void> togglePreference({
+    required Settings Function(Settings current) updater,
+  }) async {
+    await updateSettings(updater(state.settings));
   }
 }

@@ -103,6 +103,11 @@ class SettingsUiState {
   bool get isLoading =>
       status == ProfileStatus.initial || status == ProfileStatus.loading;
 
+  bool get hasFailed => status == ProfileStatus.failure;
+
+  bool get isReady =>
+      status == ProfileStatus.ready || status == ProfileStatus.refreshing;
+
   SettingsUiState copyWith({
     ProfileStatus? status,
     Settings? settings,

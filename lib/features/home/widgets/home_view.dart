@@ -7,10 +7,10 @@ import '../../../shared/widgets/app_loading.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/app_section_header.dart';
 import '../../catalog/models/category.dart';
+import '../../catalog/widgets/catalog_view.dart';
 import '../../product/models/product.dart';
 import '../navigation/home_navigation.dart';
 import '../state/home_state.dart';
-import 'home_category_strip.dart';
 import 'home_product_grid.dart';
 import 'home_promo_section.dart';
 import 'home_segment_tabs.dart';
@@ -50,6 +50,32 @@ class HomeView extends StatelessWidget {
       );
     }
 
+    if (state.segment == HomeSegment.category) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenHorizontal,
+              vertical: AppSpacing.md,
+            ),
+            child: AppSearchBar(
+              hintText: 'Search clothes, shoes, accessories…',
+              readOnly: true,
+              onTap: onSearchTap ?? () => HomeNavigation.openSearch(context),
+            ),
+          ),
+          HomeSegmentTabs(segment: state.segment, onChanged: onSegmentChanged),
+          const SizedBox(height: AppSpacing.xl),
+          Expanded(
+            child: CatalogView(
+              onCategoryTap: onCategorySelected,
+            ),
+          ),
+        ],
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
@@ -69,59 +95,28 @@ class HomeView extends StatelessWidget {
           ),
           HomeSegmentTabs(segment: state.segment, onChanged: onSegmentChanged),
           const SizedBox(height: AppSpacing.xl),
-          if (state.segment == HomeSegment.home) ...[
-            HomePromoSection(
-              promotions: state.feed.promotions,
-              onPromotionTap: (promo) =>
-                  HomeNavigation.openPromotion(context, promo),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            AppSectionHeader(
-              title: 'New Arrivals',
-              actionLabel: 'See All',
-              onAction: () => HomeNavigation.openSeeAllNewArrivals(context),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _ProductSection(
-              products: state.visibleProducts,
-              emptyTitle: 'No products yet',
-              emptyMessage: 'New arrivals will show up here soon.',
-              emptyIcon: Icons.shopping_bag_outlined,
-              onFavoriteTap: onFavoriteTap,
-            ),
-          ] else ...[
-            HomeCategoryStrip(
-              categories: state.feed.categories,
-              selectedCategoryId: state.selectedCategoryId,
-              onSelected: onCategorySelected,
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            AppSectionHeader(
-              title: _categoryTitle(state),
-              actionLabel: 'See All',
-              onAction: () => HomeNavigation.openSeeAllNewArrivals(context),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _ProductSection(
-              products: state.visibleProducts,
-              emptyTitle: 'No items in this category',
-              emptyMessage: 'Try another category to keep browsing.',
-              emptyIcon: Icons.category_outlined,
-              onFavoriteTap: onFavoriteTap,
-            ),
-          ],
+          HomePromoSection(
+            promotions: state.feed.promotions,
+            onPromotionTap: (promo) =>
+                HomeNavigation.openPromotion(context, promo),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          AppSectionHeader(
+            title: 'New Arrivals',
+            actionLabel: 'See All',
+            onAction: () => HomeNavigation.openSeeAllNewArrivals(context),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _ProductSection(
+            products: state.visibleProducts,
+            emptyTitle: 'No products yet',
+            emptyMessage: 'New arrivals will show up here soon.',
+            emptyIcon: Icons.shopping_bag_outlined,
+            onFavoriteTap: onFavoriteTap,
+          ),
         ],
       ),
     );
-  }
-
-  String _categoryTitle(HomeState state) {
-    final id = state.selectedCategoryId;
-    if (id == null || id == 'cat-all') return 'All Products';
-    for (final category in state.feed.categories) {
-      if (category.id == id) return category.name;
-    }
-    return 'Products';
   }
 }
 

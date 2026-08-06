@@ -38,4 +38,8 @@ class LocalCartRepository implements CartRepository {
 
   @override
   Future<Cart> removeItem(String itemId) => _delegate.removeItem(itemId);
+
+  @override
+  Future<Cart> removeItems(List<String> itemIds) =>
+      _delegate.removeItems(itemIds);
 }

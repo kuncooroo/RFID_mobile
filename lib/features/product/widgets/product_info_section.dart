@@ -8,6 +8,7 @@ import '../../../shared/widgets/app_color_swatch.dart';
 import '../../../shared/widgets/app_qty_stepper.dart';
 import '../../../shared/widgets/app_rating.dart';
 import '../models/product.dart';
+import 'product_store_row.dart';
 
 Color _hexToColor(String hex) {
   final value = hex.replaceFirst('#', '');
@@ -20,7 +21,7 @@ Color _hexToColor(String hex) {
   return AppColors.textPrimary;
 }
 
-/// Title, rating, stock, quantity, colors, sizes, and description block.
+/// Title, rating, stock, quantity, colors, sizes, and description (Detail / v2).
 class ProductInfoSection extends StatelessWidget {
   const ProductInfoSection({
     super.key,
@@ -33,6 +34,8 @@ class ProductInfoSection extends StatelessWidget {
     required this.onSizeSelected,
     required this.onQuantityChanged,
     required this.onReadMoreTap,
+    this.storeLogoUrl,
+    this.storeVerified = false,
     this.onStoreTap,
   });
 
@@ -45,27 +48,47 @@ class ProductInfoSection extends StatelessWidget {
   final ValueChanged<String> onSizeSelected;
   final ValueChanged<int> onQuantityChanged;
   final VoidCallback onReadMoreTap;
+  final String? storeLogoUrl;
+  final bool storeVerified;
   final VoidCallback? onStoreTap;
+
+  String? get _selectedColorName {
+    final id = selectedColorId;
+    if (id == null) return null;
+    for (final color in product.colors) {
+      if (color.id == id) return color.name;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenHorizontal),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenHorizontal,
+        AppSpacing.xxl,
+        AppSpacing.screenHorizontal,
+        AppSpacing.section,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppSpacing.lg),
-          if (product.brand != null) ...[
-            GestureDetector(
+          if (product.brand != null && onStoreTap != null) ...[
+            ProductStoreRow(
+              storeName: product.brand!,
+              logoUrl: storeLogoUrl,
+              isVerified: storeVerified,
               onTap: onStoreTap,
-              child: Text(product.brand!, style: AppTextStyles.productBrand),
             ),
+            const SizedBox(height: AppSpacing.xl),
+          ] else if (product.brand != null) ...[
+            Text(product.brand!, style: AppTextStyles.productBrand),
             const SizedBox(height: AppSpacing.xs),
           ],
-          Text(product.name, style: AppTextStyles.headlineSmall),
+          Text(product.name, style: AppTextStyles.headlineMedium),
           const SizedBox(height: AppSpacing.sm),
           AppRating(rating: product.rating, reviewCount: product.reviewCount),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
               Expanded(
@@ -87,7 +110,20 @@ class ProductInfoSection extends StatelessWidget {
           ),
           if (product.colors.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.section),
-            Text('Color', style: AppTextStyles.titleSmall),
+            Row(
+              children: [
+                Text('Color', style: AppTextStyles.titleSmall),
+                if (_selectedColorName != null) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    _selectedColorName!,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
             const SizedBox(height: AppSpacing.md),
             Wrap(
               spacing: AppSpacing.md,
@@ -124,9 +160,14 @@ class ProductInfoSection extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               product.description!,
-              style: AppTextStyles.bodyMedium,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
               maxLines: descriptionExpanded ? null : 3,
-              overflow: descriptionExpanded ? null : TextOverflow.ellipsis,
+              overflow: descriptionExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
             ),
             if (!_isShortDescription(product.description!))
               Padding(
@@ -140,7 +181,7 @@ class ProductInfoSection extends StatelessWidget {
                 ),
               ),
           ],
-          const SizedBox(height: AppSpacing.section),
+          const SizedBox(height: AppSpacing.xxl),
         ],
       ),
     );

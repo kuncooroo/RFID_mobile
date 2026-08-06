@@ -10,6 +10,7 @@ import '../providers/product_providers.dart';
 import '../widgets/product_detail_view.dart';
 import '../widgets/product_sticky_bar.dart';
 
+/// Product Detail screen (Figma nodes 1:37 Detail / 1:40 Detail v2).
 class ProductDetailPage extends ConsumerStatefulWidget {
   const ProductDetailPage({super.key, required this.productId});
 
@@ -46,10 +47,12 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => ProductNavigation.pop(context),
         ),
         title: Text('Product Detail', style: AppTextStyles.headlineSmall),
+        centerTitle: false,
         actions: [
           if (product != null)
             Padding(
@@ -60,6 +63,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               ),
             ),
           IconButton(
+            tooltip: 'Cart',
             icon: const Icon(Icons.shopping_bag_outlined),
             onPressed: () => ProductNavigation.openCart(context),
           ),
@@ -72,20 +76,34 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         onSizeSelected: controller.selectSize,
         onQuantityChanged: controller.setQuantity,
         onReadMoreTap: controller.toggleDescriptionExpanded,
+        storeLogoUrl: state.storeLogoUrl,
+        storeVerified: state.storeVerified,
       ),
       bottomNavigationBar: product == null
           ? null
           : ProductStickyBar(
               product: product,
+              isLoading: state.isAddingToCart,
               onAddToCart: () => _addToCart(),
             ),
     );
   }
 
   Future<void> _addToCart() async {
+    final controller = ref.read(
+      productDetailControllerProvider(widget.productId).notifier,
+    );
     final state = ref.read(productDetailControllerProvider(widget.productId));
     final product = state.product;
-    if (product == null) return;
+    if (product == null || state.isAddingToCart) return;
+
+    if (product.sizes.isNotEmpty &&
+        (state.selectedSize == null || state.selectedSize!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a size')),
+      );
+      return;
+    }
 
     String? colorName;
     if (state.selectedColorId != null) {
@@ -97,13 +115,31 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       }
     }
 
-    await ref.read(cartControllerProvider.notifier).addProduct(
-          product: product,
-          quantity: state.quantity,
-          colorName: colorName,
-          size: state.selectedSize,
-        );
-    if (!mounted) return;
-    ProductNavigation.openCart(context);
+    controller.setAddingToCart(true);
+    try {
+      await ref.read(cartControllerProvider.notifier).addProduct(
+            product: product,
+            quantity: state.quantity,
+            colorName: colorName,
+            size: state.selectedSize,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product.name} added to cart'),
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () => ProductNavigation.openCart(context),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not add to cart: $error')),
+      );
+    } finally {
+      controller.setAddingToCart(false);
+    }
   }
 }

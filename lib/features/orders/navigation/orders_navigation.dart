@@ -11,6 +11,14 @@ abstract final class OrdersNavigation {
     context.go(AppRoutes.orders);
   }
 
+  static void pop(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.orders);
+    }
+  }
+
   static void openHistory(BuildContext context) {
     context.push(AppRoutes.orderHistory);
   }

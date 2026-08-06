@@ -9,8 +9,10 @@ class SearchState {
     this.query = '',
     this.filter = const SearchFilter(),
     this.recentQueries = const [],
+    this.popularQueries = const [],
     this.suggestions = const [],
     this.results = const [],
+    this.filterOptions = const SearchFilterOptions(),
     this.isFilterOpen = false,
     this.errorMessage,
   });
@@ -21,8 +23,10 @@ class SearchState {
   final String query;
   final SearchFilter filter;
   final List<String> recentQueries;
+  final List<String> popularQueries;
   final List<String> suggestions;
   final List<Product> results;
+  final SearchFilterOptions filterOptions;
   final bool isFilterOpen;
   final String? errorMessage;
 
@@ -35,16 +39,17 @@ class SearchState {
 
   bool get hasResults => results.isNotEmpty;
 
-  bool get isEmptyResults =>
-      status == SearchStatus.ready && results.isEmpty && query.isNotEmpty;
+  bool get isEmptyResults => status == SearchStatus.ready && results.isEmpty;
 
   SearchState copyWith({
     SearchStatus? status,
     String? query,
     SearchFilter? filter,
     List<String>? recentQueries,
+    List<String>? popularQueries,
     List<String>? suggestions,
     List<Product>? results,
+    SearchFilterOptions? filterOptions,
     bool? isFilterOpen,
     String? errorMessage,
     bool clearError = false,
@@ -54,8 +59,10 @@ class SearchState {
       query: query ?? this.query,
       filter: filter ?? this.filter,
       recentQueries: recentQueries ?? this.recentQueries,
+      popularQueries: popularQueries ?? this.popularQueries,
       suggestions: suggestions ?? this.suggestions,
       results: results ?? this.results,
+      filterOptions: filterOptions ?? this.filterOptions,
       isFilterOpen: isFilterOpen ?? this.isFilterOpen,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );

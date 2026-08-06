@@ -56,6 +56,7 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
         size: AppSizes.iconMd,
       ),
       suffixIcon: IconButton(
+        tooltip: _obscure ? 'Show password' : 'Hide password',
         onPressed: () => setState(() => _obscure = !_obscure),
         icon: Icon(
           _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,

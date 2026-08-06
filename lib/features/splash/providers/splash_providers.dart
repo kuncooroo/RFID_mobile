@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/router/auth_session.dart';
 import '../../../src/storage/secure_storage_service.dart';
 import '../models/splash_bootstrap_result.dart';
+import '../models/splash_statistic.dart';
 import '../repository/local_splash_repository.dart';
 import '../repository/mock_splash_repository.dart';
 import '../repository/splash_repository.dart';
@@ -26,6 +27,10 @@ final splashRepositoryProvider = Provider<SplashRepository>((ref) {
   );
 });
 
+final splashStatisticsProvider = FutureProvider<List<SplashStatistic>>((ref) {
+  return ref.watch(splashRepositoryProvider).fetchStatistics();
+});
+
 final splashControllerProvider =
     NotifierProvider<SplashController, SplashState>(SplashController.new);
 
@@ -47,11 +52,16 @@ class SplashController extends Notifier<SplashState> {
       final result = await repository.bootstrap();
       await _awaitMinimumDuration(startedAt, repository.minimumDisplayDuration);
       _applySession(result);
-      state = const SplashState.ready();
+
+      // Returning users skip the Statistics marketing intro.
+      if (result.hasSeenOnboarding) {
+        state = const SplashState.ready(autoContinue: true);
+      } else {
+        state = const SplashState.intro();
+      }
     } catch (error) {
       await _awaitMinimumDuration(startedAt, repository.minimumDisplayDuration);
-      // Fail open so GoRouter can leave splash; keep failure for retry UI
-      // if redirect has not yet consumed the session update.
+      // Fail open: show Statistics intro so the user can continue.
       _applySession(
         const SplashBootstrapResult(
           isAuthenticated: false,
@@ -65,6 +75,11 @@ class SplashController extends Notifier<SplashState> {
   }
 
   Future<void> retry() => bootstrap();
+
+  /// CTA from Statistics intro → hand off to GoRouter destination.
+  void continueFromIntro() {
+    state = const SplashState.ready(autoContinue: true);
+  }
 
   void _applySession(SplashBootstrapResult result) {
     final session = ref.read(authSessionProvider.notifier);

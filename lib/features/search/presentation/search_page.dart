@@ -9,7 +9,7 @@ import '../navigation/search_navigation.dart';
 import '../providers/search_providers.dart';
 import '../widgets/search_view.dart';
 
-/// Search entry screen with recent searches and suggestions.
+/// Search entry screen with recent / popular searches and suggestions.
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -51,6 +51,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void _onQueryChanged(String value) {
     ref.read(searchControllerProvider.notifier).setQuery(value);
     ref.read(searchControllerProvider.notifier).loadSuggestions(value);
+    setState(() {});
+  }
+
+  void _clearQuery() {
+    _queryController.clear();
+    ref.read(searchControllerProvider.notifier).setQuery('');
+    ref.read(searchControllerProvider.notifier).loadSuggestions('');
+    setState(() {});
   }
 
   Future<void> _onQueryTap(String query) async {
@@ -91,6 +99,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               focusNode: _focusNode,
               hintText: 'Search clothes, shoes, accessories…',
               autofocus: true,
+              showClear: _queryController.text.isNotEmpty,
+              onClear: _clearQuery,
               onChanged: _onQueryChanged,
               onSubmitted: _submit,
             ),

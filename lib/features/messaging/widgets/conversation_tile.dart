@@ -34,10 +34,32 @@ class ConversationTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              AppAvatar(
-                imageUrl: conversation.avatarUrl,
-                name: conversation.title,
-                size: AppAvatarSize.lg,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  AppAvatar(
+                    imageUrl: conversation.avatarUrl,
+                    name: conversation.title,
+                    size: AppAvatarSize.lg,
+                  ),
+                  if (conversation.isOnline)
+                    Positioned(
+                      right: 2,
+                      bottom: 2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.surface,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

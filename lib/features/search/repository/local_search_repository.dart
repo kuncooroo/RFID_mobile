@@ -1,5 +1,5 @@
-import '../models/search_filter.dart';
 import '../../product/models/product.dart';
+import '../models/search_filter.dart';
 import 'mock_search_repository.dart';
 import 'search_repository.dart';
 
@@ -13,8 +13,15 @@ class LocalSearchRepository implements SearchRepository {
   Future<List<String>> fetchRecent() => _delegate.fetchRecent();
 
   @override
+  Future<List<String>> fetchPopular() => _delegate.fetchPopular();
+
+  @override
   Future<List<String>> fetchSuggestions(String query) =>
       _delegate.fetchSuggestions(query);
+
+  @override
+  Future<SearchFilterOptions> fetchFilterOptions() =>
+      _delegate.fetchFilterOptions();
 
   @override
   Future<List<Product>> search(SearchFilter filter) =>
@@ -30,4 +37,8 @@ class LocalSearchRepository implements SearchRepository {
   @override
   Future<void> removeRecentQuery(String query) =>
       _delegate.removeRecentQuery(query);
+
+  @override
+  Future<void> toggleFavorite(String productId) =>
+      _delegate.toggleFavorite(productId);
 }

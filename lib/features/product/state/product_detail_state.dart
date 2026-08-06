@@ -10,6 +10,9 @@ class ProductDetailState {
     this.selectedSize,
     this.quantity = 1,
     this.descriptionExpanded = false,
+    this.isAddingToCart = false,
+    this.storeLogoUrl,
+    this.storeVerified = false,
     this.errorMessage,
   });
 
@@ -21,6 +24,9 @@ class ProductDetailState {
   final String? selectedSize;
   final int quantity;
   final bool descriptionExpanded;
+  final bool isAddingToCart;
+  final String? storeLogoUrl;
+  final bool storeVerified;
   final String? errorMessage;
 
   bool get isLoading =>
@@ -29,8 +35,7 @@ class ProductDetailState {
 
   bool get hasFailed => status == ProductDetailStatus.failure;
 
-  bool get isReady =>
-      status == ProductDetailStatus.ready || product != null;
+  bool get isReady => status == ProductDetailStatus.ready || product != null;
 
   ProductDetailState copyWith({
     ProductDetailStatus? status,
@@ -39,6 +44,9 @@ class ProductDetailState {
     String? selectedSize,
     int? quantity,
     bool? descriptionExpanded,
+    bool? isAddingToCart,
+    String? storeLogoUrl,
+    bool? storeVerified,
     String? errorMessage,
     bool clearError = false,
     bool clearProduct = false,
@@ -54,6 +62,9 @@ class ProductDetailState {
       quantity: quantity ?? this.quantity,
       descriptionExpanded:
           descriptionExpanded ?? this.descriptionExpanded,
+      isAddingToCart: isAddingToCart ?? this.isAddingToCart,
+      storeLogoUrl: storeLogoUrl ?? this.storeLogoUrl,
+      storeVerified: storeVerified ?? this.storeVerified,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }

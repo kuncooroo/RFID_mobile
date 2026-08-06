@@ -5,7 +5,8 @@ import 'mock_messaging_repository.dart';
 
 /// Local messaging stand-in until Laravel messaging endpoints are wired.
 class LocalMessagingRepository implements MessagingRepository {
-  LocalMessagingRepository() : _delegate = MockMessagingRepository();
+  LocalMessagingRepository({MockMessagingRepository? delegate})
+      : _delegate = delegate ?? MockMessagingRepository.shared;
 
   final MockMessagingRepository _delegate;
 
@@ -23,4 +24,16 @@ class LocalMessagingRepository implements MessagingRepository {
     required String body,
   }) =>
       _delegate.sendMessage(threadId: threadId, body: body);
+
+  @override
+  Future<Conversation> findOrCreateStoreConversation({
+    required String storeId,
+    required String storeName,
+    String? avatarUrl,
+  }) =>
+      _delegate.findOrCreateStoreConversation(
+        storeId: storeId,
+        storeName: storeName,
+        avatarUrl: avatarUrl,
+      );
 }

@@ -11,6 +11,7 @@ class Order {
     this.shippingFee,
     this.discount,
     this.addressId,
+    this.shippingAddressLabel,
     this.paymentMethodId,
     this.placedAt,
     this.updatedAt,
@@ -27,6 +28,8 @@ class Order {
   final double? shippingFee;
   final double? discount;
   final String? addressId;
+  /// One-line shipping destination for track / receipt UI.
+  final String? shippingAddressLabel;
   final String? paymentMethodId;
   final DateTime? placedAt;
   final DateTime? updatedAt;
@@ -54,6 +57,7 @@ class Order {
     double? shippingFee,
     double? discount,
     String? addressId,
+    String? shippingAddressLabel,
     String? paymentMethodId,
     DateTime? placedAt,
     DateTime? updatedAt,
@@ -70,6 +74,8 @@ class Order {
       shippingFee: shippingFee ?? this.shippingFee,
       discount: discount ?? this.discount,
       addressId: addressId ?? this.addressId,
+      shippingAddressLabel:
+          shippingAddressLabel ?? this.shippingAddressLabel,
       paymentMethodId: paymentMethodId ?? this.paymentMethodId,
       placedAt: placedAt ?? this.placedAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -100,6 +106,7 @@ class Order {
       shippingFee: (json['shipping_fee'] as num?)?.toDouble(),
       discount: (json['discount'] as num?)?.toDouble(),
       addressId: json['address_id']?.toString(),
+      shippingAddressLabel: json['shipping_address_label'] as String?,
       paymentMethodId: json['payment_method_id']?.toString(),
       placedAt: json['placed_at'] != null
           ? DateTime.tryParse(json['placed_at'].toString())
@@ -127,6 +134,7 @@ class Order {
       'shipping_fee': shippingFee,
       'discount': discount,
       'address_id': addressId,
+      'shipping_address_label': shippingAddressLabel,
       'payment_method_id': paymentMethodId,
       'placed_at': placedAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),

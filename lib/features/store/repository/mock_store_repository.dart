@@ -3,7 +3,7 @@ import '../../product/repository/mock_product_repository.dart';
 import '../models/store.dart';
 import 'store_repository.dart';
 
-/// Seeded store detail data for tests and UI demos.
+/// Seeded store detail data for tests and UI demos (Figma Store — Detail).
 class MockStoreRepository implements StoreRepository {
   MockStoreRepository({
     this.delay = const Duration(milliseconds: 400),
@@ -14,6 +14,7 @@ class MockStoreRepository implements StoreRepository {
   final bool shouldFail;
 
   final Set<String> _followingIds = {};
+  final Set<String> _favoriteIds = {};
 
   @override
   Future<Store> fetchStore(String id) async {
@@ -38,8 +39,13 @@ class MockStoreRepository implements StoreRepository {
 
     return seedProductDetails
         .where((p) => p.storeId == id)
-        .map((p) => p.copyWith())
+        .map((p) => p.copyWith(isFavorite: _favoriteIds.contains(p.id)))
         .toList();
+  }
+
+  @override
+  Future<bool> isFollowing(String storeId) async {
+    return _followingIds.contains(storeId);
   }
 
   @override
@@ -51,7 +57,14 @@ class MockStoreRepository implements StoreRepository {
     }
   }
 
-  bool isFollowing(String storeId) => _followingIds.contains(storeId);
+  @override
+  Future<void> toggleFavorite(String productId) async {
+    if (_favoriteIds.contains(productId)) {
+      _favoriteIds.remove(productId);
+    } else {
+      _favoriteIds.add(productId);
+    }
+  }
 }
 
 const _seedStores = <Store>[
@@ -59,7 +72,7 @@ const _seedStores = <Store>[
     id: 'store-maison-noir',
     name: 'Maison Noir',
     logoUrl: 'https://picsum.photos/seed/kutuku-store-maison/200/200',
-    bannerUrl: 'https://picsum.photos/seed/kutuku-store-maison-banner/800/300',
+    bannerUrl: 'https://picsum.photos/seed/kutuku-store-maison-banner/800/320',
     description:
         'Curated luxury accessories and timeless fashion essentials. '
         'Maison Noir brings Parisian elegance to everyday style.',
@@ -73,7 +86,7 @@ const _seedStores = <Store>[
     id: 'store-urban-lab',
     name: 'Urban Lab',
     logoUrl: 'https://picsum.photos/seed/kutuku-store-urban/200/200',
-    bannerUrl: 'https://picsum.photos/seed/kutuku-store-urban-banner/800/300',
+    bannerUrl: 'https://picsum.photos/seed/kutuku-store-urban-banner/800/320',
     description:
         'Street-inspired footwear and beauty drops for the modern city explorer. '
         'Urban Lab blends function with bold design.',

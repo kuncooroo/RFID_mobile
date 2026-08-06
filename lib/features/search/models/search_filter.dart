@@ -20,13 +20,26 @@ class SearchFilter {
   final List<String> locations;
   final String? storeId;
 
-  bool get hasActiveFilters =>
+  /// Filters applied from the Filter By sheet (excludes sort chips).
+  bool get hasSheetFilters =>
       (minPrice != null && minPrice! > 0) ||
-      (maxPrice != null) ||
+      maxPrice != null ||
       colorIds.isNotEmpty ||
       locations.isNotEmpty ||
       (categoryId != null && categoryId!.isNotEmpty) ||
-      sort != SearchSort.all;
+      (storeId != null && storeId!.isNotEmpty);
+
+  bool get hasActiveFilters => hasSheetFilters || sort != SearchSort.all;
+
+  int get sheetFilterCount {
+    var count = 0;
+    if (minPrice != null && minPrice! > 0) count++;
+    if (maxPrice != null) count++;
+    if (colorIds.isNotEmpty) count++;
+    if (locations.isNotEmpty) count++;
+    if (categoryId != null && categoryId!.isNotEmpty) count++;
+    return count;
+  }
 
   SearchFilter copyWith({
     String? query,
@@ -40,6 +53,7 @@ class SearchFilter {
     bool clearMinPrice = false,
     bool clearMaxPrice = false,
     bool clearCategoryId = false,
+    bool clearStoreId = false,
   }) {
     return SearchFilter(
       query: query ?? this.query,
@@ -49,7 +63,7 @@ class SearchFilter {
       maxPrice: clearMaxPrice ? null : (maxPrice ?? this.maxPrice),
       colorIds: colorIds ?? this.colorIds,
       locations: locations ?? this.locations,
-      storeId: storeId ?? this.storeId,
+      storeId: clearStoreId ? null : (storeId ?? this.storeId),
     );
   }
 
@@ -82,6 +96,32 @@ class SearchFilter {
       'store_id': storeId,
     };
   }
+}
+
+class SearchColorOption {
+  const SearchColorOption({
+    required this.id,
+    required this.name,
+    required this.hex,
+  });
+
+  final String id;
+  final String name;
+  final String hex;
+}
+
+class SearchFilterOptions {
+  const SearchFilterOptions({
+    this.colors = const [],
+    this.locations = const [],
+    this.minPrice = 0,
+    this.maxPrice = 300,
+  });
+
+  final List<SearchColorOption> colors;
+  final List<String> locations;
+  final double minPrice;
+  final double maxPrice;
 }
 
 enum SearchSort {

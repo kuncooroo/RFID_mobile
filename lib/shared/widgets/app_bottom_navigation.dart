@@ -22,49 +22,50 @@ class AppBottomNavItem {
   final bool showDot;
 }
 
-/// 4-tab bottom navigation matching Kutuku Home / Order / Favorite / Profile.
+/// Bottom navigation with optional center FAB slot (RFID scan).
 class AppBottomNavigation extends StatelessWidget {
   const AppBottomNavigation({
     super.key,
     required this.items,
     required this.currentIndex,
     required this.onTap,
+    this.hasCenterFab = false,
   }) : assert(items.length >= 2, 'Provide at least 2 navigation items.');
 
   final List<AppBottomNavItem> items;
   final int currentIndex;
   final ValueChanged<int> onTap;
 
+  /// When true, inserts a gap in the middle for a center-docked FAB.
+  final bool hasCenterFab;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bottomNavBackground,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, -2),
-          ),
+    final mid = items.length ~/ 2;
+
+    return BottomAppBar(
+      color: AppColors.bottomNavBackground,
+      elevation: 12,
+      shadowColor: AppColors.shadow,
+      surfaceTintColor: Colors.transparent,
+      padding: EdgeInsets.zero,
+      shape: hasCenterFab ? const CircularNotchedRectangle() : null,
+      notchMargin: hasCenterFab ? 8 : 0,
+      height: AppSizes.bottomNavHeight,
+      child: Row(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (hasCenterFab && i == mid)
+              const SizedBox(width: AppSizes.fabDockGap),
+            Expanded(
+              child: _NavItemTile(
+                item: items[i],
+                selected: i == currentIndex,
+                onTap: () => onTap(i),
+              ),
+            ),
+          ],
         ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: AppSizes.bottomNavHeight - 12,
-          child: Row(
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Expanded(
-                  child: _NavItemTile(
-                    item: items[i],
-                    selected: i == currentIndex,
-                    onTap: () => onTap(i),
-                  ),
-                ),
-            ],
-          ),
-        ),
       ),
     );
   }

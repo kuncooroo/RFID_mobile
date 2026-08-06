@@ -13,35 +13,48 @@ class LocalProfileRepository implements ProfileRepository {
   LocalProfileRepository({
     required SecureStorageService storage,
     User? currentUser,
-  }) : _delegate = MockProfileRepository(),
-       _storage = storage,
-       _currentUser = currentUser;
+    MockProfileRepository? delegate,
+  })  : _delegate = delegate ?? MockProfileRepository.shared,
+        _storage = storage,
+        _currentUser = currentUser;
 
   final MockProfileRepository _delegate;
   final SecureStorageService _storage;
   final User? _currentUser;
 
   static const _settingsKey = 'profile_settings';
+  static const _memberKey = 'profile_member_overrides';
 
   @override
   Future<ProfileSnapshot> fetchProfile() async {
     final snapshot = await _delegate.fetchProfile();
-    final user = _currentUser;
     final settings = await fetchSettings();
+    final overrides = await _readMemberOverrides();
+    final user = _currentUser;
 
-    if (user == null) {
-      return ProfileSnapshot(member: snapshot.member, settings: settings);
+    var member = snapshot.member;
+    if (overrides != null) {
+      member = member.copyWith(
+        displayName: overrides['display_name'] as String? ?? member.displayName,
+        email: overrides['email'] as String? ?? member.email,
+        phone: overrides['phone'] as String? ?? member.phone,
+        avatarUrl: overrides['avatar_url'] as String? ?? member.avatarUrl,
+      );
     }
 
-    final member = snapshot.member.copyWith(
-      userId: user.id,
-      displayName: user.name.isNotEmpty
-          ? user.name
-          : snapshot.member.displayName,
-      email: user.email.isNotEmpty ? user.email : snapshot.member.email,
-      phone: user.phone ?? snapshot.member.phone,
-      avatarUrl: user.avatarUrl ?? snapshot.member.avatarUrl,
-    );
+    if (user != null) {
+      member = member.copyWith(
+        userId: user.id,
+        displayName: overrides?['display_name'] as String? ??
+            (user.name.isNotEmpty ? user.name : member.displayName),
+        email: overrides?['email'] as String? ??
+            (user.email.isNotEmpty ? user.email : member.email),
+        phone: overrides?['phone'] as String? ?? user.phone ?? member.phone,
+        avatarUrl: overrides?['avatar_url'] as String? ??
+            user.avatarUrl ??
+            member.avatarUrl,
+      );
+    }
 
     return ProfileSnapshot(member: member, settings: settings);
   }
@@ -51,12 +64,24 @@ class LocalProfileRepository implements ProfileRepository {
     required String displayName,
     required String email,
     String? phone,
-  }) {
-    return _delegate.updateProfile(
+    String? avatarUrl,
+  }) async {
+    final member = await _delegate.updateProfile(
       displayName: displayName,
       email: email,
       phone: phone,
+      avatarUrl: avatarUrl,
     );
+    await _storage.write(
+      _memberKey,
+      jsonEncode({
+        'display_name': member.displayName,
+        'email': member.email,
+        'phone': member.phone,
+        'avatar_url': member.avatarUrl,
+      }),
+    );
+    return member;
   }
 
   @override
@@ -78,9 +103,11 @@ class LocalProfileRepository implements ProfileRepository {
     }
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
-      return Settings.fromJson(json);
+      final settings = Settings.fromJson(json);
+      await _delegate.updateSettings(settings);
+      return settings;
     } catch (_) {
-      return const Settings();
+      return _delegate.fetchSettings();
     }
   }
 
@@ -92,4 +119,14 @@ class LocalProfileRepository implements ProfileRepository {
 
   @override
   Future<List<LanguageOption>> fetchLanguages() => _delegate.fetchLanguages();
+
+  Future<Map<String, dynamic>?> _readMemberOverrides() async {
+    final raw = await _storage.read(_memberKey);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
 }

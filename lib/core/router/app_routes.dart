@@ -53,15 +53,18 @@ abstract final class AppRoutes {
   // --- Notifications ---
   static const notifications = '/notifications';
 
-  // --- Settings (nested under profile) ---
+  // --- Settings / account (under profile) ---
   static const settings = '/profile/settings';
-  static const editProfile = '/profile/settings/edit-profile';
-  static const changePassword = '/profile/settings/change-password';
+  static const editProfile = '/profile/edit-profile';
+  static const changePassword = '/profile/change-password';
   static const notificationSettings = '/profile/settings/notifications';
-  static const security = '/profile/settings/security';
-  static const language = '/profile/settings/language';
-  static const helpSupport = '/profile/settings/help';
-  static const legalPolicies = '/profile/settings/legal';
+  static const security = '/profile/security';
+  static const language = '/profile/language';
+  static const helpSupport = '/profile/help';
+  static const legalPolicies = '/profile/legal';
+
+  // --- RFID self-service ---
+  static const rfidScan = '/rfid/scan';
 
   // --- Unknown ---
   static const notFound = '/404';

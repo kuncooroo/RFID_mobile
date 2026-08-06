@@ -31,7 +31,9 @@ class _OrdersPageState extends ConsumerState<OrdersPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(ordersControllerProvider);
     final controller = ref.read(ordersControllerProvider.notifier);
-    final badges = ref.watch(shellControllerProvider).badges;
+    final badges = ref.watch(
+      shellControllerProvider.select((s) => s.badges),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,

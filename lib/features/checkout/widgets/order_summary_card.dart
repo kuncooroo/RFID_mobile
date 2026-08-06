@@ -5,10 +5,12 @@ import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/app_image.dart';
 import '../../cart/models/cart.dart';
 
+/// Order lines + totals shown on the Payment screen.
 class OrderSummaryCard extends StatelessWidget {
   const OrderSummaryCard({
     super.key,
@@ -56,10 +58,7 @@ class OrderSummaryCard extends StatelessWidget {
               Expanded(
                 child: Text('Total', style: AppTextStyles.titleMedium),
               ),
-              Text(
-                '\$${total.toStringAsFixed(2)}',
-                style: AppTextStyles.priceLarge,
-              ),
+              Text(formatMoney(total), style: AppTextStyles.priceLarge),
             ],
           ),
         ],
@@ -103,10 +102,7 @@ class OrderSummaryCard extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            '\$${item.lineTotal.toStringAsFixed(2)}',
-            style: AppTextStyles.price,
-          ),
+          Text(formatMoney(item.lineTotal), style: AppTextStyles.price),
         ],
       ),
     );
@@ -128,7 +124,7 @@ class OrderSummaryCard extends StatelessWidget {
           ),
         ),
         Text(
-          '${isDiscount ? '-' : ''}\$${amount.abs().toStringAsFixed(2)}',
+          '${isDiscount ? '-' : ''}${formatMoney(amount.abs())}',
           style: AppTextStyles.bodyMedium.copyWith(
             color: isDiscount ? AppColors.success : AppColors.textPrimary,
           ),

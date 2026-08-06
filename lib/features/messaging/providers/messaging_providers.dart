@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/conversation.dart';
@@ -15,7 +17,7 @@ const bool kUseMockMessagingRepository = bool.fromEnvironment(
 
 final messagingRepositoryProvider = Provider<MessagingRepository>((ref) {
   if (kUseMockMessagingRepository) {
-    return MockMessagingRepository();
+    return MockMessagingRepository.shared;
   }
   return LocalMessagingRepository();
 });
@@ -68,6 +70,27 @@ class MessagingController extends Notifier<MessagingState> {
     }
     return null;
   }
+
+  Future<Conversation?> openStoreConversation({
+    required String storeId,
+    required String storeName,
+    String? avatarUrl,
+  }) async {
+    try {
+      final conversation = await ref
+          .read(messagingRepositoryProvider)
+          .findOrCreateStoreConversation(
+            storeId: storeId,
+            storeName: storeName,
+            avatarUrl: avatarUrl,
+          );
+      await refresh();
+      return conversation;
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      return null;
+    }
+  }
 }
 
 class MessageDetailController extends Notifier<MessageDetailState> {
@@ -79,25 +102,30 @@ class MessageDetailController extends Notifier<MessageDetailState> {
   MessageDetailState build() => const MessageDetailState.initial();
 
   Future<void> load() async {
-    state = state.copyWith(status: MessageDetailStatus.loading, clearError: true);
+    state = state.copyWith(
+      status: MessageDetailStatus.loading,
+      clearError: true,
+    );
 
     final messaging = ref.read(messagingControllerProvider.notifier);
     if (ref.read(messagingControllerProvider).conversations.isEmpty) {
       await messaging.load();
     }
 
-    final conversation = messaging.conversationById(threadId);
+    var conversation = messaging.conversationById(threadId);
 
     try {
       final messages = await ref
           .read(messagingRepositoryProvider)
           .fetchMessages(threadId);
+      conversation = messaging.conversationById(threadId) ?? conversation;
       state = state.copyWith(
         status: MessageDetailStatus.ready,
         conversation: conversation,
         messages: messages,
       );
-      await ref.read(messagingControllerProvider.notifier).refresh();
+      // Refresh list so unread badges clear without blocking chat UI.
+      unawaited(messaging.refresh());
     } catch (error) {
       state = state.copyWith(
         status: MessageDetailStatus.failure,
@@ -126,7 +154,7 @@ class MessageDetailController extends Notifier<MessageDetailState> {
           unreadCount: 0,
         ),
       );
-      await ref.read(messagingControllerProvider.notifier).refresh();
+      unawaited(ref.read(messagingControllerProvider.notifier).refresh());
     } catch (error) {
       state = state.copyWith(
         isSending: false,

@@ -9,7 +9,7 @@ import '../navigation/search_navigation.dart';
 import '../providers/search_providers.dart';
 import '../widgets/search_results_view.dart';
 
-/// Search results screen with sort chips and filter bottom sheet.
+/// Search Result screen with sort chips and Filter By sheet.
 class SearchResultsPage extends ConsumerStatefulWidget {
   const SearchResultsPage({super.key, required this.initialQuery});
 
@@ -30,6 +30,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
       if (!mounted) return;
       final controller = ref.read(searchControllerProvider.notifier);
       controller.initializeResults(query: widget.initialQuery);
+      await controller.ensureFilterOptions();
       await controller.search();
     });
   }
@@ -44,17 +45,30 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
     _queryController.text = trimmed;
+    setState(() {});
     await ref.read(searchControllerProvider.notifier).submitQuery(trimmed);
+  }
+
+  void _onQueryChanged(String value) {
+    ref.read(searchControllerProvider.notifier).setQuery(value);
+    setState(() {});
+  }
+
+  void _clearQuery() {
+    _queryController.clear();
+    ref.read(searchControllerProvider.notifier).setQuery('');
+    setState(() {});
   }
 
   Future<void> _openFilter() async {
     final controller = ref.read(searchControllerProvider.notifier);
-    final currentFilter = ref.read(searchControllerProvider).filter;
+    final state = ref.read(searchControllerProvider);
     controller.setFilterOpen(true);
 
     final result = await SearchNavigation.openFilterSheet(
       context,
-      initialFilter: currentFilter,
+      initialFilter: state.filter,
+      options: state.filterOptions,
     );
 
     controller.setFilterOpen(false);
@@ -79,6 +93,13 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
         ),
         title: Text('Search Result', style: AppTextStyles.headlineSmall),
         centerTitle: false,
+        actions: [
+          IconButton(
+            tooltip: 'Cart',
+            icon: const Icon(Icons.shopping_bag_outlined),
+            onPressed: () => SearchNavigation.openCart(context),
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,9 +115,12 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
               controller: _queryController,
               hintText: 'Search clothes, shoes, accessories…',
               showFilter: true,
+              filterActive: state.filter.hasSheetFilters,
+              showClear: _queryController.text.isNotEmpty,
+              onClear: _clearQuery,
               onFilterTap: _openFilter,
               onSubmitted: _submit,
-              onChanged: controller.setQuery,
+              onChanged: _onQueryChanged,
             ),
           ),
           Expanded(

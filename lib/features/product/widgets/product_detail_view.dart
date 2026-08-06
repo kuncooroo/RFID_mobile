@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/design_system/colors.dart';
+import '../../../shared/design_system/radius.dart';
 import '../../../shared/widgets/app_error_state.dart';
 import '../../../shared/widgets/app_loading.dart';
 import '../models/product.dart';
@@ -8,6 +10,7 @@ import '../state/product_detail_state.dart';
 import 'product_gallery.dart';
 import 'product_info_section.dart';
 
+/// Product Detail scroll body — gallery hero + overlapping content sheet.
 class ProductDetailView extends StatelessWidget {
   const ProductDetailView({
     super.key,
@@ -17,6 +20,8 @@ class ProductDetailView extends StatelessWidget {
     required this.onSizeSelected,
     required this.onQuantityChanged,
     required this.onReadMoreTap,
+    this.storeLogoUrl,
+    this.storeVerified = false,
   });
 
   final ProductDetailState state;
@@ -25,6 +30,8 @@ class ProductDetailView extends StatelessWidget {
   final ValueChanged<String> onSizeSelected;
   final ValueChanged<int> onQuantityChanged;
   final VoidCallback onReadMoreTap;
+  final String? storeLogoUrl;
+  final bool storeVerified;
 
   @override
   Widget build(BuildContext context) {
@@ -48,22 +55,47 @@ class ProductDetailView extends StatelessWidget {
     final images = _galleryImages(product);
 
     return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        SliverToBoxAdapter(child: ProductGallery(imageUrls: images)),
         SliverToBoxAdapter(
-          child: ProductInfoSection(
-            product: product,
-            selectedColorId: state.selectedColorId,
-            selectedSize: state.selectedSize,
-            quantity: state.quantity,
-            descriptionExpanded: state.descriptionExpanded,
-            onColorSelected: onColorSelected,
-            onSizeSelected: onSizeSelected,
-            onQuantityChanged: onQuantityChanged,
-            onReadMoreTap: onReadMoreTap,
-            onStoreTap: product.storeId != null
-                ? () => ProductNavigation.openStore(context, product.storeId!)
-                : null,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ProductGallery(imageUrls: images),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: -1,
+                child: Container(
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: AppRadius.detailSheet,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: ColoredBox(
+            color: AppColors.background,
+            child: ProductInfoSection(
+              product: product,
+              selectedColorId: state.selectedColorId,
+              selectedSize: state.selectedSize,
+              quantity: state.quantity,
+              descriptionExpanded: state.descriptionExpanded,
+              onColorSelected: onColorSelected,
+              onSizeSelected: onSizeSelected,
+              onQuantityChanged: onQuantityChanged,
+              onReadMoreTap: onReadMoreTap,
+              storeLogoUrl: storeLogoUrl,
+              storeVerified: storeVerified,
+              onStoreTap: product.storeId != null
+                  ? () => ProductNavigation.openStore(context, product.storeId!)
+                  : null,
+            ),
           ),
         ),
       ],

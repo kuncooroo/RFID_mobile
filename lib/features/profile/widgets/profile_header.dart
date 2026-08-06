@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/colors.dart';
+import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_avatar.dart';
@@ -19,20 +20,27 @@ class ProfileHeader extends StatelessWidget {
         AppAvatar(
           name: member.displayName,
           imageUrl: member.avatarUrl,
-          size: AppAvatarSize.lg,
+          size: AppAvatarSize.xl,
         ),
         const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(member.displayName, style: AppTextStyles.headlineSmall),
+              Text(
+                member.displayName,
+                style: AppTextStyles.headlineSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                member.email ?? '',
+                member.email ?? member.phone ?? '',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               if (member.membershipTier != null) ...[
                 const SizedBox(height: AppSpacing.sm),
@@ -41,9 +49,9 @@ class ProfileHeader extends StatelessWidget {
                     horizontal: AppSpacing.md,
                     vertical: AppSpacing.xs,
                   ),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors.primarySoft,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: AppRadius.pillAll,
                   ),
                   child: Text(
                     '${member.membershipTier} Member',
@@ -61,7 +69,7 @@ class ProfileHeader extends StatelessWidget {
           IconButton(
             tooltip: 'Edit profile',
             onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined),
+            icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
           ),
       ],
     );
@@ -82,26 +90,35 @@ class ProfileStatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatTile(
-            label: 'Orders',
-            value: '${member.ordersCount}',
-            onTap: onOrdersTap,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: AppRadius.lgAll,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StatTile(
+              label: 'Orders',
+              value: '${member.ordersCount}',
+              onTap: onOrdersTap,
+            ),
           ),
-        ),
-        Expanded(
-          child: _StatTile(
-            label: 'Favorites',
-            value: '${member.favoritesCount}',
-            onTap: onFavoritesTap,
+          Container(width: 1, height: 36, color: AppColors.divider),
+          Expanded(
+            child: _StatTile(
+              label: 'Favorites',
+              value: '${member.favoritesCount}',
+              onTap: onFavoritesTap,
+            ),
           ),
-        ),
-        Expanded(
-          child: _StatTile(label: 'Points', value: '${member.points}'),
-        ),
-      ],
+          Container(width: 1, height: 36, color: AppColors.divider),
+          Expanded(
+            child: _StatTile(label: 'Points', value: '${member.points}'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -117,9 +134,9 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Column(
           children: [
             Text(value, style: AppTextStyles.titleLarge),

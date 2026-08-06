@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/colors.dart';
+import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
-import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 
 class MessageComposer extends StatefulWidget {
@@ -24,12 +24,28 @@ class MessageComposer extends StatefulWidget {
 class _MessageComposerState extends State<MessageComposer> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  var _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onChanged);
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller
+      ..removeListener(_onChanged)
+      ..dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onChanged() {
+    final hasText = _controller.text.trim().isNotEmpty;
+    if (hasText != _hasText) {
+      setState(() => _hasText = hasText);
+    }
   }
 
   void _submit() {
@@ -42,6 +58,8 @@ class _MessageComposerState extends State<MessageComposer> {
 
   @override
   Widget build(BuildContext context) {
+    final canSend = _hasText && !widget.isSending;
+
     return Material(
       color: AppColors.surface,
       elevation: 8,
@@ -72,17 +90,31 @@ class _MessageComposerState extends State<MessageComposer> {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              AppButton(
-                label: 'Send',
-                size: AppButtonSize.small,
-                isExpanded: false,
-                height: 48,
-                isLoading: widget.isSending,
-                onPressed: widget.isSending ? null : _submit,
-                leading: const Icon(
-                  Icons.send_rounded,
-                  color: AppColors.textOnPrimary,
-                  size: 18,
+              Material(
+                color: canSend ? AppColors.primary : AppColors.surfaceMuted,
+                borderRadius: AppRadius.pillAll,
+                child: InkWell(
+                  onTap: canSend ? _submit : null,
+                  borderRadius: AppRadius.pillAll,
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: widget.isSending
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.textOnPrimary,
+                            ),
+                          )
+                        : Icon(
+                            Icons.send_rounded,
+                            color: canSend
+                                ? AppColors.textOnPrimary
+                                : AppColors.textTertiary,
+                            size: 20,
+                          ),
+                  ),
                 ),
               ),
             ],

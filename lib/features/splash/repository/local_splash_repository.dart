@@ -1,6 +1,7 @@
 import '../../../src/storage/secure_storage_service.dart';
 import '../../auth/models/user.dart';
 import '../models/splash_bootstrap_result.dart';
+import '../models/splash_statistic.dart';
 import 'splash_repository.dart';
 
 /// Production splash bootstrap using secure storage (no network).
@@ -10,7 +11,7 @@ import 'splash_repository.dart';
 class LocalSplashRepository implements SplashRepository {
   LocalSplashRepository({
     required SecureStorageService storage,
-    this.minimumDisplayDuration = const Duration(milliseconds: 1500),
+    this.minimumDisplayDuration = const Duration(milliseconds: 1400),
   }) : _storage = storage;
 
   final SecureStorageService _storage;
@@ -33,5 +34,10 @@ class LocalSplashRepository implements SplashRepository {
       accessToken: hasToken ? token : null,
       user: hasToken ? User(id: 'local', name: 'Member', email: '') : null,
     );
+  }
+
+  @override
+  Future<List<SplashStatistic>> fetchStatistics() async {
+    return List<SplashStatistic>.unmodifiable(kDefaultSplashStatistics);
   }
 }

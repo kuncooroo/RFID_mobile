@@ -26,8 +26,10 @@ class OrderTrackTimeline extends StatelessWidget {
         for (var i = 0; i < events.length; i++)
           _TimelineTile(
             event: events[i],
-            isFirst: i == 0,
             isLast: i == events.length - 1,
+            showConnectorAsActive:
+                events[i].isCompleted &&
+                (i + 1 < events.length ? events[i + 1].isCompleted : false),
           ),
       ],
     );
@@ -37,13 +39,13 @@ class OrderTrackTimeline extends StatelessWidget {
 class _TimelineTile extends StatelessWidget {
   const _TimelineTile({
     required this.event,
-    required this.isFirst,
     required this.isLast,
+    required this.showConnectorAsActive,
   });
 
   final OrderTrackingEvent event;
-  final bool isFirst;
   final bool isLast;
+  final bool showConnectorAsActive;
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +60,11 @@ class _TimelineTile extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  width: 14,
-                  height: 14,
+                  width: 16,
+                  height: 16,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: active ? AppColors.primary : AppColors.borderStrong,
+                    color: active ? AppColors.primary : AppColors.surface,
                     border: Border.all(
                       color: active
                           ? AppColors.primary
@@ -70,12 +72,22 @@ class _TimelineTile extends StatelessWidget {
                       width: 2,
                     ),
                   ),
+                  child: active
+                      ? const Icon(
+                          Icons.check,
+                          size: 10,
+                          color: AppColors.textOnPrimary,
+                        )
+                      : null,
                 ),
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: active ? AppColors.primaryLight : AppColors.border,
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      color: showConnectorAsActive
+                          ? AppColors.primaryLight
+                          : AppColors.border,
                     ),
                   ),
               ],
@@ -84,10 +96,7 @@ class _TimelineTile extends StatelessWidget {
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(
-                bottom: isLast ? 0 : AppSpacing.xl,
-                top: isFirst ? 0 : 0,
-              ),
+              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -112,7 +121,9 @@ class _TimelineTile extends StatelessWidget {
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       _formatDateTime(event.occurredAt!),
-                      style: AppTextStyles.labelSmall,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                   ],
                 ],
@@ -128,6 +139,8 @@ class _TimelineTile extends StatelessWidget {
     final local = value.toLocal();
     final h = local.hour.toString().padLeft(2, '0');
     final m = local.minute.toString().padLeft(2, '0');
-    return '${local.day}/${local.month}/${local.year} · $h:$m';
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}/'
+        '${local.year} · $h:$m';
   }
 }

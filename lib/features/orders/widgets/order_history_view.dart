@@ -14,18 +14,20 @@ class OrderHistoryView extends StatelessWidget {
     super.key,
     required this.state,
     required this.onRetry,
+    this.onRefresh,
   });
 
   final OrderHistoryState state;
   final VoidCallback onRetry;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    if (state.isLoading) {
+    if (state.isLoading && state.items.isEmpty) {
       return const AppLoading.page(message: 'Loading history…');
     }
 
-    if (state.hasFailed) {
+    if (state.hasFailed && state.items.isEmpty) {
       return AppErrorState(
         title: 'Could not load history',
         message: state.errorMessage ?? 'Please try again.',
@@ -44,7 +46,8 @@ class OrderHistoryView extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
+    final list = ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
       itemCount: state.items.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
@@ -56,5 +59,8 @@ class OrderHistoryView extends StatelessWidget {
         );
       },
     );
+
+    if (onRefresh == null) return list;
+    return RefreshIndicator(onRefresh: onRefresh!, child: list);
   }
 }

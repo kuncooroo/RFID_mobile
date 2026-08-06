@@ -21,11 +21,15 @@ abstract final class SearchNavigation {
   static Future<SearchFilter?> openFilterSheet(
     BuildContext context, {
     required SearchFilter initialFilter,
+    required SearchFilterOptions options,
   }) {
     return showAppBottomSheet<SearchFilter>(
       context: context,
       title: 'Filter By',
-      child: SearchFilterSheet(initialFilter: initialFilter),
+      child: SearchFilterSheet(
+        initialFilter: initialFilter,
+        options: options,
+      ),
     );
   }
 

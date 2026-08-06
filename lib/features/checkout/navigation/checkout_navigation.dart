@@ -24,8 +24,8 @@ abstract final class CheckoutNavigation {
   static void openSuccess(BuildContext context, {String? orderId}) {
     final uri = orderId == null
         ? AppRoutes.checkoutSuccess
-        : '${AppRoutes.checkoutSuccess}?orderId=$orderId';
-    context.push(uri);
+        : '${AppRoutes.checkoutSuccess}?orderId=${Uri.encodeComponent(orderId)}';
+    context.go(uri);
   }
 
   static void openOrderTrack(BuildContext context, String orderId) {

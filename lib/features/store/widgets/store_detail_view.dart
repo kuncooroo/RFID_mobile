@@ -10,19 +10,26 @@ import '../state/store_state.dart';
 import 'store_header.dart';
 import 'store_product_grid.dart';
 
+/// Scrollable Store Detail body matching Kutuku Store — Detail.
 class StoreDetailView extends StatelessWidget {
   const StoreDetailView({
     super.key,
     required this.state,
+    required this.onRefresh,
     required this.onRetry,
     required this.onFollowTap,
     required this.onProductTap,
+    required this.onFavoriteTap,
+    this.onMessageTap,
   });
 
   final StoreDetailState state;
+  final Future<void> Function() onRefresh;
   final VoidCallback onRetry;
   final VoidCallback onFollowTap;
   final ValueChanged<Product> onProductTap;
+  final ValueChanged<Product> onFavoriteTap;
+  final VoidCallback? onMessageTap;
 
   @override
   Widget build(BuildContext context) {
@@ -43,32 +50,37 @@ class StoreDetailView extends StatelessWidget {
       return const AppLoading.page(message: 'Loading store…');
     }
 
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: AppSpacing.xxxl),
-      children: [
-        StoreHeader(
-          store: store,
-          isFollowing: state.isFollowing,
-          onFollowTap: onFollowTap,
-        ),
-        AppSectionHeader(title: 'Products'),
-        const SizedBox(height: AppSpacing.md),
-        if (state.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-            child: AppEmptyState(
-              title: 'No products yet',
-              message: 'This store has not listed any products.',
-              icon: Icons.inventory_2_outlined,
-            ),
-          )
-        else
-          StoreProductGrid(
-            products: state.products,
-            onProductTap: onProductTap,
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xxxl),
+        children: [
+          StoreHeader(
+            store: store,
+            isFollowing: state.isFollowing,
+            onFollowTap: onFollowTap,
+            onMessageTap: onMessageTap,
           ),
-      ],
+          AppSectionHeader(title: 'All Product'),
+          const SizedBox(height: AppSpacing.lg),
+          if (state.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+              child: AppEmptyState(
+                title: 'No products yet',
+                message: 'This store has not listed any products.',
+                icon: Icons.inventory_2_outlined,
+              ),
+            )
+          else
+            StoreProductGrid(
+              products: state.products,
+              onProductTap: onProductTap,
+              onFavoriteTap: onFavoriteTap,
+            ),
+        ],
+      ),
     );
   }
 }

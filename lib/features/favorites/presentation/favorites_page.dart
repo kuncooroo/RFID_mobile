@@ -43,7 +43,9 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(favoritesControllerProvider);
     final controller = ref.read(favoritesControllerProvider.notifier);
-    final badges = ref.watch(shellControllerProvider).badges;
+    final badges = ref.watch(
+      shellControllerProvider.select((s) => s.badges),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,

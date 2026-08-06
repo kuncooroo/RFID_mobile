@@ -9,6 +9,14 @@ abstract final class ProfileNavigation {
     context.go(AppRoutes.profile);
   }
 
+  static void pop(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.profile);
+    }
+  }
+
   static void openSettings(BuildContext context) {
     context.push(AppRoutes.settings);
   }
@@ -55,5 +63,9 @@ abstract final class ProfileNavigation {
 
   static void openFavorites(BuildContext context) {
     context.go(AppRoutes.favorites);
+  }
+
+  static void openLogin(BuildContext context) {
+    context.go(AppRoutes.login);
   }
 }

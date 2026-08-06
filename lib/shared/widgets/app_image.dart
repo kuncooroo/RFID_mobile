@@ -20,10 +20,7 @@ class AppImage extends StatelessWidget {
     this.errorWidget,
     this.memCacheWidth,
     this.memCacheHeight,
-  }) : assert(
-         imageUrl != null || assetPath != null,
-         'Provide either imageUrl or assetPath.',
-       );
+  });
 
   final String? imageUrl;
   final String? assetPath;

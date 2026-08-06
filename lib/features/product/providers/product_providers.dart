@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../store/providers/store_providers.dart';
 import '../repository/local_product_repository.dart';
 import '../repository/mock_product_repository.dart';
 import '../repository/product_repository.dart';
@@ -45,6 +46,21 @@ class ProductDetailController extends Notifier<ProductDetailState> {
           ? product.colors.first.id
           : null;
       final defaultSize = product.sizes.isNotEmpty ? product.sizes.first : null;
+
+      String? storeLogoUrl;
+      var storeVerified = false;
+      final storeId = product.storeId;
+      if (storeId != null && storeId.isNotEmpty) {
+        try {
+          final store =
+              await ref.read(storeRepositoryProvider).fetchStore(storeId);
+          storeLogoUrl = store.logoUrl;
+          storeVerified = store.isVerified;
+        } catch (_) {
+          // Store meta is optional chrome on product detail.
+        }
+      }
+
       state = state.copyWith(
         status: ProductDetailStatus.ready,
         product: product,
@@ -52,6 +68,8 @@ class ProductDetailController extends Notifier<ProductDetailState> {
         selectedSize: defaultSize,
         quantity: 1,
         descriptionExpanded: false,
+        storeLogoUrl: storeLogoUrl,
+        storeVerified: storeVerified,
       );
     } catch (error) {
       state = state.copyWith(
@@ -83,6 +101,10 @@ class ProductDetailController extends Notifier<ProductDetailState> {
 
   void toggleDescriptionExpanded() {
     state = state.copyWith(descriptionExpanded: !state.descriptionExpanded);
+  }
+
+  void setAddingToCart(bool value) {
+    state = state.copyWith(isAddingToCart: value);
   }
 
   Future<void> toggleFavorite() async {

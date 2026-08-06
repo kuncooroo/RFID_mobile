@@ -3,22 +3,30 @@ import 'package:flutter/material.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
-import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_settings_tile.dart';
 import '../../settings/models/settings.dart';
 import '../navigation/profile_navigation.dart';
 import '../state/profile_state.dart';
+import 'language_view.dart';
+import 'security_view.dart';
 
 class SettingsHubView extends StatelessWidget {
-  const SettingsHubView({super.key, required this.state});
+  const SettingsHubView({
+    super.key,
+    required this.state,
+    this.onLogout,
+  });
 
   final SettingsUiState state;
+  final VoidCallback? onLogout;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
       children: [
+        Text('Account', style: AppTextStyles.sectionTitle),
+        const SizedBox(height: AppSpacing.md),
         AppSettingsTile(
           title: 'Edit Profile',
           leading: const Icon(Icons.person_outline_rounded),
@@ -30,7 +38,9 @@ class SettingsHubView extends StatelessWidget {
           leading: const Icon(Icons.lock_outline_rounded),
           onTap: () => ProfileNavigation.openChangePassword(context),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.xxl),
+        Text('Preferences', style: AppTextStyles.sectionTitle),
+        const SizedBox(height: AppSpacing.md),
         AppSettingsTile(
           title: 'Notifications',
           leading: const Icon(Icons.notifications_none_rounded),
@@ -49,7 +59,9 @@ class SettingsHubView extends StatelessWidget {
           trailingText: state.settings.languageLabel,
           onTap: () => ProfileNavigation.openLanguage(context),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.xxl),
+        Text('Support', style: AppTextStyles.sectionTitle),
+        const SizedBox(height: AppSpacing.md),
         AppSettingsTile(
           title: 'Help & Support',
           leading: const Icon(Icons.help_outline_rounded),
@@ -61,6 +73,17 @@ class SettingsHubView extends StatelessWidget {
           leading: const Icon(Icons.description_outlined),
           onTap: () => ProfileNavigation.openLegalPolicies(context),
         ),
+        if (onLogout != null) ...[
+          const SizedBox(height: AppSpacing.xxl),
+          AppSettingsTile(
+            title: 'Logout',
+            leading: const Icon(Icons.logout_rounded),
+            isDestructive: true,
+            showChevron: false,
+            onTap: onLogout,
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xxl),
       ],
     );
   }
@@ -81,31 +104,38 @@ class NotificationSettingsView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
       children: [
-        SwitchListTile(
-          title: const Text('Push notifications'),
+        Text(
+          'Choose which alerts you want to receive.',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _PreferenceSwitch(
+          title: 'Push notifications',
+          subtitle: 'Alerts on this device',
           value: settings.pushNotificationsEnabled,
-          activeThumbColor: AppColors.primary,
           onChanged: (value) =>
               onChanged(settings.copyWith(pushNotificationsEnabled: value)),
         ),
-        SwitchListTile(
-          title: const Text('Email notifications'),
+        _PreferenceSwitch(
+          title: 'Email notifications',
+          subtitle: 'Updates sent to your inbox',
           value: settings.emailNotificationsEnabled,
-          activeThumbColor: AppColors.primary,
           onChanged: (value) =>
               onChanged(settings.copyWith(emailNotificationsEnabled: value)),
         ),
-        SwitchListTile(
-          title: const Text('Order updates'),
+        _PreferenceSwitch(
+          title: 'Order updates',
+          subtitle: 'Shipping and delivery status',
           value: settings.orderUpdatesEnabled,
-          activeThumbColor: AppColors.primary,
           onChanged: (value) =>
               onChanged(settings.copyWith(orderUpdatesEnabled: value)),
         ),
-        SwitchListTile(
-          title: const Text('Promotions'),
+        _PreferenceSwitch(
+          title: 'Promotions',
+          subtitle: 'Deals, vouchers, and offers',
           value: settings.promoNotificationsEnabled,
-          activeThumbColor: AppColors.primary,
           onChanged: (value) =>
               onChanged(settings.copyWith(promoNotificationsEnabled: value)),
         ),
@@ -126,32 +156,13 @@ class SecuritySettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-      children: [
-        SwitchListTile(
-          title: const Text('Biometric login'),
-          subtitle: const Text('Use Face ID / fingerprint'),
-          value: settings.biometricEnabled,
-          activeThumbColor: AppColors.primary,
-          onChanged: (value) =>
-              onChanged(settings.copyWith(biometricEnabled: value)),
-        ),
-        SwitchListTile(
-          title: const Text('Two-factor authentication'),
-          subtitle: const Text('Extra security for sign-in'),
-          value: settings.twoFactorEnabled,
-          activeThumbColor: AppColors.primary,
-          onChanged: (value) =>
-              onChanged(settings.copyWith(twoFactorEnabled: value)),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        AppButton(
-          label: 'Change Password',
-          variant: AppButtonVariant.outline,
-          onPressed: () => ProfileNavigation.openChangePassword(context),
-        ),
-      ],
+    return SecurityView(
+      settings: settings,
+      onBiometricChanged: (value) =>
+          onChanged(settings.copyWith(biometricEnabled: value)),
+      onTwoFactorChanged: (value) =>
+          onChanged(settings.copyWith(twoFactorEnabled: value)),
+      onChangePassword: () => ProfileNavigation.openChangePassword(context),
     );
   }
 }
@@ -168,113 +179,60 @@ class LanguageSettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-      itemCount: state.languages.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, index) {
-        final option = state.languages[index];
-        final selected = option.code == state.settings.languageCode;
-        return AppSettingsTile(
-          title: option.label,
-          trailingText: selected ? 'Selected' : null,
-          showChevron: !selected,
-          onTap: () => onSelect(option),
-          leading: Icon(
-            selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-            color: selected ? AppColors.primary : AppColors.textTertiary,
-          ),
-        );
-      },
+    return LanguageView(
+      languages: state.languages,
+      selectedCode: state.settings.languageCode,
+      isLoading: state.isLoading,
+      errorMessage: state.errorMessage,
+      onSelect: onSelect,
     );
   }
 }
 
-class HelpSupportView extends StatelessWidget {
-  const HelpSupportView({super.key});
+class _PreferenceSwitch extends StatelessWidget {
+  const _PreferenceSwitch({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-      children: [
-        Text('Need help?', style: AppTextStyles.headlineSmall),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Contact Kutuku support or browse common questions below.',
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: AppTextStyles.titleMedium),
+      subtitle: Text(
+        subtitle,
+        style: AppTextStyles.bodySmall.copyWith(
+          color: AppColors.textSecondary,
         ),
-        const SizedBox(height: AppSpacing.xxl),
-        const AppSettingsTile(
-          title: 'Order issues',
-          leading: Icon(Icons.local_shipping_outlined),
-          showChevron: false,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        const AppSettingsTile(
-          title: 'Payments & refunds',
-          leading: Icon(Icons.payments_outlined),
-          showChevron: false,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        const AppSettingsTile(
-          title: 'Account access',
-          leading: Icon(Icons.manage_accounts_outlined),
-          showChevron: false,
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text(
-          'support@kutuku.app',
-          style: AppTextStyles.link,
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
+      value: value,
+      activeThumbColor: AppColors.primary,
+      activeTrackColor: AppColors.primaryLight,
+      onChanged: onChanged,
     );
   }
 }
 
-class LegalPoliciesView extends StatelessWidget {
-  const LegalPoliciesView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-      children: const [
-        AppSettingsTile(
-          title: 'Terms of Service',
-          leading: Icon(Icons.article_outlined),
-          showChevron: false,
-        ),
-        SizedBox(height: AppSpacing.sm),
-        AppSettingsTile(
-          title: 'Privacy Policy',
-          leading: Icon(Icons.privacy_tip_outlined),
-          showChevron: false,
-        ),
-        SizedBox(height: AppSpacing.sm),
-        AppSettingsTile(
-          title: 'Return Policy',
-          leading: Icon(Icons.assignment_return_outlined),
-          showChevron: false,
-        ),
-      ],
-    );
-  }
-}
-
-/// Shared form chrome for edit profile / change password.
+/// Shared form chrome for edit profile / change password / settings pages.
 class ProfileFormScaffold extends StatelessWidget {
   const ProfileFormScaffold({
     super.key,
     required this.title,
     required this.child,
+    this.actions,
   });
 
   final String title;
   final Widget child;
+  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +242,14 @@ class ProfileFormScaffold extends StatelessWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => ProfileNavigation.pop(context),
+        ),
         title: Text(title, style: AppTextStyles.headlineSmall),
+        centerTitle: false,
+        actions: actions,
       ),
       body: child,
     );

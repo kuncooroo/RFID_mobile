@@ -4,6 +4,7 @@ import '../repository/local_orders_repository.dart';
 import '../repository/mock_orders_repository.dart';
 import '../repository/orders_repository.dart';
 import '../state/orders_state.dart';
+import '../models/order.dart';
 
 /// Pass `--dart-define=USE_MOCK_ORDERS=true` to force the mock repository.
 const bool kUseMockOrdersRepository = bool.fromEnvironment(
@@ -13,7 +14,7 @@ const bool kUseMockOrdersRepository = bool.fromEnvironment(
 
 final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
   if (kUseMockOrdersRepository) {
-    return MockOrdersRepository();
+    return MockOrdersRepository.shared;
   }
   return LocalOrdersRepository();
 });
@@ -44,6 +45,15 @@ class OrdersController extends Notifier<OrdersState> {
   Future<void> refresh() async {
     state = state.copyWith(status: OrdersStatus.refreshing, clearError: true);
     await _fetch(status: OrdersStatus.ready);
+  }
+
+  /// Reloads the feed after checkout without blocking on prior status.
+  Future<void> reloadAfterCheckout() async {
+    if (state.isReady) {
+      await refresh();
+    } else {
+      await load();
+    }
   }
 
   Future<void> _fetch({required OrdersStatus status}) async {
@@ -85,6 +95,10 @@ class OrderHistoryController extends Notifier<OrderHistoryState> {
       );
     }
   }
+
+  Future<void> refresh() async {
+    await load();
+  }
 }
 
 class OrderTrackController extends Notifier<OrderTrackState> {
@@ -110,4 +124,54 @@ class OrderTrackController extends Notifier<OrderTrackState> {
       );
     }
   }
+
+  Future<void> refresh() async {
+    await load();
+  }
+}
+
+/// Builds the initial tracking timeline for a freshly paid order.
+OrderTracking buildInitialTracking({
+  required String orderId,
+  DateTime? placedAt,
+}) {
+  final at = placedAt ?? DateTime.now();
+  return OrderTracking(
+    orderId: orderId,
+    courierName: null,
+    trackingNumber: null,
+    currentStatus: OrderStatus.paid,
+    events: [
+      OrderTrackingEvent(
+        id: 'e1',
+        title: 'Order placed',
+        description: 'We received your order',
+        occurredAt: at,
+        isCompleted: true,
+      ),
+      OrderTrackingEvent(
+        id: 'e2',
+        title: 'Payment confirmed',
+        description: 'Payment was successful',
+        occurredAt: at,
+        isCompleted: true,
+      ),
+      const OrderTrackingEvent(
+        id: 'e3',
+        title: 'Processing',
+        description: 'Seller is preparing your items',
+        isCompleted: false,
+      ),
+      const OrderTrackingEvent(
+        id: 'e4',
+        title: 'Shipped',
+        isCompleted: false,
+      ),
+      const OrderTrackingEvent(
+        id: 'e5',
+        title: 'Delivered',
+        isCompleted: false,
+      ),
+    ],
+  );
 }

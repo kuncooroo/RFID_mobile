@@ -11,4 +11,7 @@ abstract class OrdersRepository {
   Future<Order> fetchOrderById(String orderId);
 
   Future<OrderTracking> fetchTracking(String orderId);
+
+  /// Persists a newly placed order (from checkout) into the local feed.
+  Future<Order> createOrder(Order order);
 }

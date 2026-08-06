@@ -43,8 +43,8 @@ class PaymentMethodTile extends StatelessWidget {
               ),
             ),
           Container(
-            width: 44,
-            height: 28,
+            width: 48,
+            height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
@@ -52,9 +52,10 @@ class PaymentMethodTile extends StatelessWidget {
               border: Border.all(color: AppColors.border),
             ),
             child: Text(
-              method.brand.isNotEmpty ? method.brand[0].toUpperCase() : 'C',
-              style: AppTextStyles.titleSmall.copyWith(
+              _brandShort(method.brand),
+              style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.primary,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -89,5 +90,14 @@ class PaymentMethodTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _brandShort(String brand) {
+    final value = brand.trim();
+    if (value.isEmpty) return 'Card';
+    if (value.toLowerCase().startsWith('visa')) return 'VISA';
+    if (value.toLowerCase().startsWith('master')) return 'MC';
+    if (value.toLowerCase().startsWith('amex')) return 'AMEX';
+    return value.length <= 4 ? value.toUpperCase() : value.substring(0, 4).toUpperCase();
   }
 }

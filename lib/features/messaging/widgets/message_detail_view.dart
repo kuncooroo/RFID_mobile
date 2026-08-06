@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
+import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_error_state.dart';
 import '../../../shared/widgets/app_loading.dart';
+import '../models/message.dart';
 import '../state/message_detail_state.dart';
 import 'message_bubble.dart';
 import 'message_composer.dart';
@@ -65,6 +68,8 @@ class _MessageDetailViewState extends State<MessageDetailView> {
       );
     }
 
+    final rows = _buildRows(widget.state.messages);
+
     return Column(
       children: [
         Expanded(
@@ -76,9 +81,13 @@ class _MessageDetailViewState extends State<MessageDetailView> {
               AppSpacing.screenHorizontal,
               AppSpacing.lg,
             ),
-            itemCount: widget.state.messages.length,
+            itemCount: rows.length,
             itemBuilder: (context, index) {
-              final message = widget.state.messages[index];
+              final row = rows[index];
+              if (row is _DateSeparatorRow) {
+                return _DateSeparator(label: row.label);
+              }
+              final message = (row as _MessageRow).message;
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.md),
                 child: MessageBubble(message: message),
@@ -91,6 +100,75 @@ class _MessageDetailViewState extends State<MessageDetailView> {
           isSending: widget.state.isSending,
         ),
       ],
+    );
+  }
+
+  List<_ChatRow> _buildRows(List<Message> messages) {
+    final rows = <_ChatRow>[];
+    DateTime? lastDay;
+
+    for (final message in messages) {
+      final sentAt = message.sentAt?.toLocal();
+      if (sentAt != null) {
+        final day = DateTime(sentAt.year, sentAt.month, sentAt.day);
+        if (lastDay == null || day != lastDay) {
+          rows.add(_DateSeparatorRow(_formatDayLabel(day)));
+          lastDay = day;
+        }
+      }
+      rows.add(_MessageRow(message));
+    }
+    return rows;
+  }
+
+  String _formatDayLabel(DateTime day) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (day == today) return 'Today';
+    if (day == yesterday) return 'Yesterday';
+    return '${day.day.toString().padLeft(2, '0')}/'
+        '${day.month.toString().padLeft(2, '0')}/'
+        '${day.year}';
+  }
+}
+
+sealed class _ChatRow {}
+
+class _DateSeparatorRow extends _ChatRow {
+  _DateSeparatorRow(this.label);
+  final String label;
+}
+
+class _MessageRow extends _ChatRow {
+  _MessageRow(this.message);
+  final Message message;
+}
+
+class _DateSeparator extends StatelessWidget {
+  const _DateSeparator({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Row(
+        children: [
+          const Expanded(child: Divider(color: AppColors.divider)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Text(
+              label,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ),
+          const Expanded(child: Divider(color: AppColors.divider)),
+        ],
+      ),
     );
   }
 }

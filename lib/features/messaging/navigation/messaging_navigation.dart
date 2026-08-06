@@ -10,6 +10,14 @@ abstract final class MessagingNavigation {
     context.push(AppRoutes.messages);
   }
 
+  static void pop(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.home);
+    }
+  }
+
   static void openThread(BuildContext context, Conversation conversation) {
     context.push(AppRoutes.messageDetailPath(conversation.id));
   }

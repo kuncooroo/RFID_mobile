@@ -1,7 +1,7 @@
 import '../../product/models/product.dart';
 import '../models/store.dart';
-import 'store_repository.dart';
 import 'mock_store_repository.dart';
+import 'store_repository.dart';
 
 /// Local store stand-in until Laravel store endpoints are wired.
 class LocalStoreRepository implements StoreRepository {
@@ -17,6 +17,13 @@ class LocalStoreRepository implements StoreRepository {
       _delegate.fetchStoreProducts(id);
 
   @override
+  Future<bool> isFollowing(String storeId) => _delegate.isFollowing(storeId);
+
+  @override
   Future<void> toggleFollow(String storeId) =>
       _delegate.toggleFollow(storeId);
+
+  @override
+  Future<void> toggleFavorite(String productId) =>
+      _delegate.toggleFavorite(productId);
 }

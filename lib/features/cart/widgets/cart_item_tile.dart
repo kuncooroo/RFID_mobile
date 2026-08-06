@@ -5,10 +5,12 @@ import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/widgets/app_image.dart';
 import '../../../shared/widgets/app_qty_stepper.dart';
 import '../models/cart.dart';
 
+/// Selectable cart line item (My Cart / Selected / v2).
 class CartItemTile extends StatelessWidget {
   const CartItemTile({
     super.key,
@@ -88,7 +90,7 @@ class CartItemTile extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '\$${item.unitPrice.toStringAsFixed(2)}',
+                        formatMoney(item.unitPrice),
                         style: AppTextStyles.price,
                       ),
                       const Spacer(),
@@ -105,6 +107,7 @@ class CartItemTile extends StatelessWidget {
             if (onDelete != null) ...[
               const SizedBox(width: AppSpacing.xs),
               IconButton(
+                tooltip: 'Remove',
                 onPressed: onDelete,
                 icon: const Icon(Icons.delete_outline_rounded),
                 color: AppColors.textSecondary,

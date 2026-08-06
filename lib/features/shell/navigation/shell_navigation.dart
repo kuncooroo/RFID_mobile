@@ -47,6 +47,10 @@ abstract final class ShellNavigation {
   static void openMessages(BuildContext context) {
     context.push(AppRoutes.messages);
   }
+
+  static void openRfidScan(BuildContext context) {
+    context.push(AppRoutes.rfidScan);
+  }
 }
 
 /// Maps shell branch index to its root location.

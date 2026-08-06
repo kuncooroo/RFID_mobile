@@ -3,25 +3,44 @@ import '../models/message.dart';
 import 'messaging_repository.dart';
 
 /// Seeded messaging repository for tests and UI demos.
+///
+/// Uses a shared in-memory store so list + detail + store CTA stay in sync.
 class MockMessagingRepository implements MessagingRepository {
   MockMessagingRepository({
     this.delay = const Duration(milliseconds: 350),
     this.shouldFail = false,
     this.currentMemberId = 'member-1',
-  })  : _conversations = List<Conversation>.from(_seedConversations),
-        _messages = Map<String, List<Message>>.from(
-          _seedMessages.map(
-            (key, value) => MapEntry(key, List<Message>.from(value)),
-          ),
-        );
+  }) {
+    _sharedConversations ??= List<Conversation>.from(_seedConversations);
+    _sharedMessages ??= {
+      for (final entry in _seedMessages.entries)
+        entry.key: List<Message>.from(entry.value),
+    };
+  }
+
+  static final MockMessagingRepository shared = MockMessagingRepository();
 
   final Duration delay;
   final bool shouldFail;
   final String currentMemberId;
 
-  final List<Conversation> _conversations;
-  final Map<String, List<Message>> _messages;
-  int _messageCounter = 100;
+  static List<Conversation>? _sharedConversations;
+  static Map<String, List<Message>>? _sharedMessages;
+  static int _messageCounter = 100;
+  static int _threadCounter = 50;
+
+  List<Conversation> get _conversations => _sharedConversations!;
+  Map<String, List<Message>> get _messages => _sharedMessages!;
+
+  static void resetShared() {
+    _sharedConversations = List<Conversation>.from(_seedConversations);
+    _sharedMessages = {
+      for (final entry in _seedMessages.entries)
+        entry.key: List<Message>.from(entry.value),
+    };
+    _messageCounter = 100;
+    _threadCounter = 50;
+  }
 
   @override
   Future<List<Conversation>> fetchConversations() async {
@@ -77,7 +96,8 @@ class MockMessagingRepository implements MessagingRepository {
     final threadMessages = _messages.putIfAbsent(threadId, () => <Message>[]);
     threadMessages.add(message);
 
-    final conversationIndex = _conversations.indexWhere((c) => c.id == threadId);
+    final conversationIndex =
+        _conversations.indexWhere((c) => c.id == threadId);
     if (conversationIndex != -1) {
       _conversations[conversationIndex] = _conversations[conversationIndex]
           .copyWith(
@@ -88,6 +108,45 @@ class MockMessagingRepository implements MessagingRepository {
     }
 
     return message;
+  }
+
+  @override
+  Future<Conversation> findOrCreateStoreConversation({
+    required String storeId,
+    required String storeName,
+    String? avatarUrl,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (shouldFail) throw StateError('Unable to open conversation');
+
+    for (final conversation in _conversations) {
+      if (conversation.storeId == storeId) return conversation;
+    }
+
+    final now = DateTime.now();
+    final conversation = Conversation(
+      id: 'thread-${++_threadCounter}',
+      title: storeName,
+      avatarUrl: avatarUrl,
+      lastMessage: 'Say hello to $storeName',
+      lastMessageAt: now,
+      unreadCount: 0,
+      storeId: storeId,
+      isOnline: true,
+    );
+    _conversations.insert(0, conversation);
+    _messages[conversation.id] = [
+      Message(
+        id: 'msg-${++_messageCounter}',
+        conversationId: conversation.id,
+        body: 'You can ask about products, shipping, or your orders here.',
+        senderId: 'system',
+        senderType: MessageSenderType.system,
+        sentAt: now,
+        isRead: true,
+      ),
+    ];
+    return conversation;
   }
 }
 
@@ -148,7 +207,7 @@ final _seedMessages = <String, List<Message>>{
     Message(
       id: 'msg-1',
       conversationId: 'thread-1',
-      body: 'Hi! I placed order #KTK-1042 yesterday.',
+      body: 'Hi! I placed order #KU-1042 yesterday.',
       senderId: _currentMemberId,
       senderType: MessageSenderType.member,
       sentAt: DateTime.now().subtract(const Duration(hours: 2)),

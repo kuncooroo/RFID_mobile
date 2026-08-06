@@ -11,3 +11,4 @@ export 'widgets/product_detail_view.dart';
 export 'widgets/product_gallery.dart';
 export 'widgets/product_info_section.dart';
 export 'widgets/product_sticky_bar.dart';
+export 'widgets/product_store_row.dart';

@@ -7,6 +7,7 @@ import '../../../shared/widgets/app_loading.dart';
 import '../state/search_state.dart';
 import 'search_recent_list.dart';
 
+/// Idle Search body — recent, popular, and live suggestions.
 class SearchView extends StatelessWidget {
   const SearchView({
     super.key,
@@ -25,11 +26,15 @@ class SearchView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.isLoading && state.recentQueries.isEmpty) {
+    if (state.isLoading &&
+        state.recentQueries.isEmpty &&
+        state.popularQueries.isEmpty) {
       return const AppLoading.page(message: 'Loading search…');
     }
 
-    if (state.hasFailed && state.recentQueries.isEmpty) {
+    if (state.hasFailed &&
+        state.recentQueries.isEmpty &&
+        state.popularQueries.isEmpty) {
       return AppErrorState(
         title: 'Could not load search',
         message: state.errorMessage ?? 'Please try again.',
@@ -40,7 +45,9 @@ class SearchView extends StatelessWidget {
     final showSuggestions =
         state.query.trim().isNotEmpty && state.suggestions.isNotEmpty;
 
-    if (!showSuggestions && state.recentQueries.isEmpty) {
+    if (!showSuggestions &&
+        state.recentQueries.isEmpty &&
+        state.popularQueries.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
         child: AppEmptyState(
@@ -57,6 +64,7 @@ class SearchView extends StatelessWidget {
       children: [
         SearchRecentList(
           recentQueries: state.recentQueries,
+          popularQueries: state.popularQueries,
           suggestions: state.suggestions,
           showSuggestions: showSuggestions,
           onQueryTap: onQueryTap,

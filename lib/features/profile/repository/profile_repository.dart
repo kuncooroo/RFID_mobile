@@ -10,6 +10,7 @@ abstract class ProfileRepository {
     required String displayName,
     required String email,
     String? phone,
+    String? avatarUrl,
   });
 
   Future<void> changePassword({

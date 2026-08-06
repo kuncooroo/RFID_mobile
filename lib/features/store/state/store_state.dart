@@ -1,7 +1,7 @@
 import '../../product/models/product.dart';
 import '../models/store.dart';
 
-enum StoreDetailStatus { initial, loading, ready, failure }
+enum StoreDetailStatus { initial, loading, refreshing, ready, failure }
 
 class StoreDetailState {
   const StoreDetailState({
@@ -24,9 +24,12 @@ class StoreDetailState {
       status == StoreDetailStatus.initial ||
       status == StoreDetailStatus.loading;
 
+  bool get isRefreshing => status == StoreDetailStatus.refreshing;
+
   bool get hasFailed => status == StoreDetailStatus.failure;
 
-  bool get isReady => status == StoreDetailStatus.ready || store != null;
+  bool get isReady =>
+      status == StoreDetailStatus.ready || status == StoreDetailStatus.refreshing;
 
   bool get isEmpty => products.isEmpty;
 

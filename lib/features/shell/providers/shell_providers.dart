@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../notifications/models/notification.dart';
 import '../models/shell_badge_summary.dart';
 import '../repository/local_shell_repository.dart';
 import '../repository/mock_shell_repository.dart';
@@ -24,12 +23,6 @@ final shellControllerProvider = NotifierProvider<ShellController, ShellState>(
   ShellController.new,
 );
 
-final shellNotificationsProvider =
-    NotifierProvider<
-      ShellNotificationsController,
-      AsyncValue<List<AppNotification>>
-    >(ShellNotificationsController.new);
-
 class ShellController extends Notifier<ShellState> {
   @override
   ShellState build() => const ShellState.initial();
@@ -46,30 +39,5 @@ class ShellController extends Notifier<ShellState> {
         badges: const ShellBadgeSummary(),
       );
     }
-  }
-}
-
-class ShellNotificationsController
-    extends Notifier<AsyncValue<List<AppNotification>>> {
-  @override
-  AsyncValue<List<AppNotification>> build() => const AsyncData([]);
-
-  Future<void> load() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(shellRepositoryProvider).fetchNotifications(),
-    );
-  }
-
-  Future<void> markRead(String id) async {
-    await ref.read(shellRepositoryProvider).markNotificationRead(id);
-    await load();
-    await ref.read(shellControllerProvider.notifier).refresh();
-  }
-
-  Future<void> markAllRead() async {
-    await ref.read(shellRepositoryProvider).markAllNotificationsRead();
-    await load();
-    await ref.read(shellControllerProvider.notifier).refresh();
   }
 }

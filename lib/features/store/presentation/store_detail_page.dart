@@ -7,6 +7,7 @@ import '../navigation/store_navigation.dart';
 import '../providers/store_providers.dart';
 import '../widgets/store_detail_view.dart';
 
+/// Store Detail screen (Figma node 1:36).
 class StoreDetailPage extends ConsumerStatefulWidget {
   const StoreDetailPage({super.key, required this.storeId});
 
@@ -42,15 +43,19 @@ class _StoreDetailPageState extends ConsumerState<StoreDetailPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => StoreNavigation.pop(context),
         ),
-        title: Text(
-          state.store?.name ?? 'Store',
-          style: AppTextStyles.headlineSmall,
-        ),
+        title: Text('Store', style: AppTextStyles.headlineSmall),
+        centerTitle: false,
         actions: [
           IconButton(
+            tooltip: 'Search',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => StoreNavigation.openSearch(context),
+          ),
+          IconButton(
+            tooltip: 'Cart',
             icon: const Icon(Icons.shopping_bag_outlined),
             onPressed: () => StoreNavigation.openCart(context),
           ),
@@ -58,10 +63,26 @@ class _StoreDetailPageState extends ConsumerState<StoreDetailPage> {
       ),
       body: StoreDetailView(
         state: state,
+        onRefresh: controller.refresh,
         onRetry: controller.load,
         onFollowTap: controller.toggleFollow,
+        onMessageTap: () async {
+          final store = state.store;
+          if (store == null) {
+            StoreNavigation.openMessages(context);
+            return;
+          }
+          await StoreNavigation.openStoreMessage(
+            context,
+            ref,
+            storeId: store.id,
+            storeName: store.name,
+            avatarUrl: store.logoUrl,
+          );
+        },
         onProductTap: (product) =>
             StoreNavigation.openProduct(context, product),
+        onFavoriteTap: controller.toggleFavorite,
       ),
     );
   }

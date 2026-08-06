@@ -4,15 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_error_state.dart';
 import '../../../shared/widgets/app_loading.dart';
 import '../../cart/providers/cart_providers.dart';
 import '../navigation/checkout_navigation.dart';
 import '../providers/checkout_providers.dart';
+import '../widgets/address_card.dart';
 import '../widgets/order_summary_card.dart';
 import '../widgets/payment_method_tile.dart';
 
+/// Payment confirmation screen (Figma 1:48).
 class PaymentPage extends ConsumerStatefulWidget {
   const PaymentPage({super.key});
 
@@ -26,14 +29,41 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(checkoutControllerProvider.notifier).loadPaymentMethods();
+      final controller = ref.read(checkoutControllerProvider.notifier);
+      final state = ref.read(checkoutControllerProvider);
+      if (state.addresses.isEmpty) {
+        controller.loadAddresses();
+      }
+      controller.loadPaymentMethods();
     });
   }
 
   Future<void> _onPayNow() async {
+    final checkoutState = ref.read(checkoutControllerProvider);
+    if (checkoutState.selectedAddressId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a delivery address first')),
+      );
+      CheckoutNavigation.pop(context);
+      return;
+    }
+    if (checkoutState.selectedPaymentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a payment method')),
+      );
+      return;
+    }
+
     final orderId =
         await ref.read(checkoutControllerProvider.notifier).placeOrder();
-    if (!mounted || orderId == null) return;
+    if (!mounted) return;
+    if (orderId == null) {
+      final error = ref.read(checkoutControllerProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error ?? 'Payment failed. Please try again.')),
+      );
+      return;
+    }
     CheckoutNavigation.openSuccess(context, orderId: orderId);
   }
 
@@ -46,6 +76,8 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         .where((item) => item.isSelected)
         .toList();
     final selectedMethod = checkoutState.selectedPaymentMethod;
+    final selectedAddress = checkoutState.selectedAddress;
+    final total = cartState.selectedSubtotal;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -53,7 +85,13 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => CheckoutNavigation.pop(context),
+        ),
         title: Text('Payment', style: AppTextStyles.headlineSmall),
+        centerTitle: false,
       ),
       body: checkoutState.isLoading && checkoutState.paymentMethods.isEmpty
           ? const AppLoading.page(message: 'Loading payment…')
@@ -71,9 +109,19 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 AppSpacing.xxxl,
               ),
               children: [
+                if (selectedAddress != null) ...[
+                  Text('Shipping Address', style: AppTextStyles.titleMedium),
+                  const SizedBox(height: AppSpacing.sm),
+                  AddressCard(
+                    address: selectedAddress,
+                    isSelected: true,
+                    onTap: () => CheckoutNavigation.pop(context),
+                  ),
+                  const SizedBox(height: AppSpacing.section),
+                ],
                 OrderSummaryCard(
                   items: selectedItems,
-                  subtotal: cartState.selectedSubtotal,
+                  subtotal: total,
                 ),
                 const SizedBox(height: AppSpacing.section),
                 Row(
@@ -87,7 +135,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                     TextButton(
                       onPressed: () =>
                           CheckoutNavigation.openPaymentMethods(context),
-                      child: const Text('Change'),
+                      child: Text('Change', style: AppTextStyles.link),
                     ),
                   ],
                 ),
@@ -132,9 +180,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         child: SafeArea(
           top: false,
           child: AppButton(
-            label: 'Pay Now',
+            label: 'Pay Now · ${formatMoney(total)}',
             isLoading: checkoutState.placingOrder,
-            onPressed: checkoutState.canPay ? _onPayNow : null,
+            onPressed: checkoutState.canPay && selectedItems.isNotEmpty
+                ? _onPayNow
+                : null,
           ),
         ),
       ),

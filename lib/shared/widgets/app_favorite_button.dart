@@ -20,19 +20,39 @@ class AppFavoriteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: backgroundColor ?? AppColors.white.withValues(alpha: 0.92),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
+    final label = isFavorite ? 'Remove from favorites' : 'Add to favorites';
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: Tooltip(
+        message: label,
         child: SizedBox(
-          width: size,
-          height: size,
-          child: Icon(
-            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            size: size * 0.55,
-            color: isFavorite ? AppColors.favorite : AppColors.textSecondary,
+          width: AppSizes.minTapTarget,
+          height: AppSizes.minTapTarget,
+          child: Center(
+            child: Material(
+              color: backgroundColor ?? AppColors.white.withValues(alpha: 0.92),
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onPressed,
+                customBorder: const CircleBorder(),
+                child: SizedBox(
+                  width: size,
+                  height: size,
+                  child: Icon(
+                    isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    size: size * 0.55,
+                    color: isFavorite
+                        ? AppColors.favorite
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

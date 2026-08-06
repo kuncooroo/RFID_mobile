@@ -25,6 +25,8 @@ abstract final class AppSizes {
   // App chrome
   static const double appBarHeight = 56;
   static const double bottomNavHeight = 72;
+  static const double fabDockGap = 64;
+  static const double fabSize = 60;
   static const double bottomSheetHandleWidth = 40;
   static const double bottomSheetHandleHeight = 4;
   static const double dividerThickness = 1;

@@ -32,11 +32,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeControllerProvider);
     final controller = ref.read(homeControllerProvider.notifier);
-    final badges = ref.watch(shellControllerProvider).badges;
-    final userAsync = ref.watch(currentUserProvider);
-    final name = userAsync.maybeWhen(
-      data: (user) => user?.name.split(' ').first ?? 'there',
-      orElse: () => 'there',
+    final unreadNotifications = ref.watch(
+      shellControllerProvider.select((s) => s.badges.unreadNotifications),
+    );
+    final name = ref.watch(
+      currentUserProvider.select(
+        (async) => async.maybeWhen(
+          data: (user) => user?.name.split(' ').first ?? 'there',
+          orElse: () => 'there',
+        ),
+      ),
     );
 
     return Scaffold(
@@ -44,7 +49,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: ShellAppBar(
         greeting: 'Hello,',
         title: name,
-        unreadNotifications: badges.unreadNotifications,
+        unreadNotifications: unreadNotifications,
         onSearch: () => HomeNavigation.openSearch(context),
         onNotifications: () => HomeNavigation.openNotifications(context),
         onCart: () => HomeNavigation.openCart(context),
@@ -55,7 +60,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         onRetry: controller.load,
         onSegmentChanged: controller.setSegment,
         onCategorySelected: (category) =>
-            controller.selectCategory(category.id),
+            HomeNavigation.openCategory(context, category),
         onFavoriteTap: controller.toggleFavorite,
         onSearchTap: () => ShellNavigation.openSearch(context),
       ),

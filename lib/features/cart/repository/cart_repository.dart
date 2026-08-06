@@ -19,4 +19,6 @@ abstract class CartRepository {
   Future<Cart> selectAll(bool selected);
 
   Future<Cart> removeItem(String itemId);
+
+  Future<Cart> removeItems(List<String> itemIds);
 }

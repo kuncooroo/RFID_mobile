@@ -150,6 +150,27 @@ class CartController extends Notifier<CartState> {
     }
   }
 
+  Future<void> removeSelectedItems() async {
+    final ids = selectedItems.map((item) => item.id).toList();
+    if (ids.isEmpty) return;
+    final previous = state.cart;
+    state = state.copyWith(
+      cart: previous.copyWith(
+        items: previous.items.where((item) => !ids.contains(item.id)).toList(),
+      ),
+    );
+    try {
+      final cart = await ref.read(cartRepositoryProvider).removeItems(ids);
+      state = state.copyWith(cart: cart);
+    } catch (error) {
+      state = state.copyWith(
+        cart: previous,
+        status: CartStatus.failure,
+        errorMessage: error.toString(),
+      );
+    }
+  }
+
   List<CartItem> get selectedItems =>
       state.cart.items.where((item) => item.isSelected).toList();
 

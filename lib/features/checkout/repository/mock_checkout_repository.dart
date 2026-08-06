@@ -67,7 +67,7 @@ class MockCheckoutRepository implements CheckoutRepository {
       throw StateError('No items selected for checkout.');
     }
     _orderCounter += 1;
-    return 'ORD-$_orderCounter';
+    return 'ord-$_orderCounter';
   }
 
   String _detectBrand(String digits) {

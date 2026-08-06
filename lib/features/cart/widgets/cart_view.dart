@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/design_system/app_assets.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -14,6 +13,7 @@ import 'cart_checkout_bar.dart';
 import 'cart_item_tile.dart';
 import 'cart_select_all_bar.dart';
 
+/// My Cart body — select all, item list, sticky checkout bar.
 class CartView extends StatelessWidget {
   const CartView({
     super.key,
@@ -53,12 +53,7 @@ class CartView extends StatelessWidget {
     }
 
     if (state.isEmpty) {
-      return AppEmptyState(
-        title: 'Your cart is empty',
-        message: 'Browse products and add items to your cart.',
-        illustrationAsset: AppAssets.emptyCart,
-        icon: Icons.shopping_cart_outlined,
-        actionLabel: 'Back to Home',
+      return AppEmptyStates.cart(
         onAction: () => CartNavigation.openHome(context),
       );
     }
@@ -79,6 +74,7 @@ class CartView extends StatelessWidget {
               children: [
                 CartSelectAllBar(
                   allSelected: state.allSelected,
+                  hasSelection: state.hasSelection,
                   onToggleAll: onSelectAll,
                   itemCount: state.cart.itemCount,
                 ),

@@ -10,6 +10,7 @@ import '../navigation/checkout_navigation.dart';
 import '../providers/checkout_providers.dart';
 import '../widgets/payment_method_tile.dart';
 
+/// Change Payment Method list (Figma 1:50).
 class PaymentMethodsPage extends ConsumerStatefulWidget {
   const PaymentMethodsPage({super.key});
 
@@ -33,8 +34,8 @@ class _PaymentMethodsPageState extends ConsumerState<PaymentMethodsPage> {
 
   void _onSelect(String paymentMethodId) {
     ref.read(checkoutControllerProvider.notifier).selectPaymentMethod(
-      paymentMethodId,
-    );
+          paymentMethodId,
+        );
     CheckoutNavigation.pop(context);
   }
 
@@ -48,10 +49,16 @@ class _PaymentMethodsPageState extends ConsumerState<PaymentMethodsPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => CheckoutNavigation.pop(context),
+        ),
         title: Text(
           'Change Payment Method',
           style: AppTextStyles.headlineSmall,
         ),
+        centerTitle: false,
       ),
       body: state.isLoading && state.paymentMethods.isEmpty
           ? const AppLoading.page(message: 'Loading cards…')

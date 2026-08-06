@@ -1,29 +1,40 @@
 import '../../notifications/models/notification.dart';
+import '../../notifications/repository/local_notifications_repository.dart';
+import '../../notifications/repository/notifications_repository.dart';
+import '../../orders/repository/local_orders_repository.dart';
+import '../../orders/repository/orders_repository.dart';
 import '../models/shell_badge_summary.dart';
-import 'mock_shell_repository.dart';
 import 'shell_repository.dart';
 
 /// Production shell stand-in until notifications/orders APIs exist.
-///
-/// Delegates to the same seeded dataset as [MockShellRepository] so the
-/// shell chrome works end-to-end without a backend.
 class LocalShellRepository implements ShellRepository {
-  LocalShellRepository() : _delegate = MockShellRepository();
+  LocalShellRepository({
+    NotificationsRepository? notifications,
+    OrdersRepository? orders,
+  })  : _notifications = notifications ?? LocalNotificationsRepository(),
+        _orders = orders ?? LocalOrdersRepository();
 
-  final MockShellRepository _delegate;
+  final NotificationsRepository _notifications;
+  final OrdersRepository _orders;
 
   @override
-  Future<ShellBadgeSummary> fetchBadges() => _delegate.fetchBadges();
+  Future<ShellBadgeSummary> fetchBadges() async {
+    final unread = await _notifications.unreadCount();
+    final feed = await _orders.fetchOrdersFeed();
+    return ShellBadgeSummary(
+      unreadNotifications: unread,
+      activeOrders: feed.activeCount,
+    );
+  }
 
   @override
   Future<List<AppNotification>> fetchNotifications() =>
-      _delegate.fetchNotifications();
+      _notifications.fetchNotifications();
 
   @override
   Future<void> markNotificationRead(String id) =>
-      _delegate.markNotificationRead(id);
+      _notifications.markRead(id);
 
   @override
-  Future<void> markAllNotificationsRead() =>
-      _delegate.markAllNotificationsRead();
+  Future<void> markAllNotificationsRead() => _notifications.markAllRead();
 }

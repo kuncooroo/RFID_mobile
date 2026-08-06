@@ -5,6 +5,7 @@ import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/app_image.dart';
@@ -69,7 +70,7 @@ class OrderCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Total  \$${order.total.toStringAsFixed(0)}',
+                  'Total  ${formatMoney(order.total)}',
                   style: AppTextStyles.price,
                 ),
               ),
@@ -127,7 +128,7 @@ class HistoryOrderCard extends StatelessWidget {
                 Text(item.orderNumber, style: AppTextStyles.titleMedium),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  '${item.itemCount} item(s) · \$${item.total.toStringAsFixed(0)}',
+                  '${item.itemCount} item(s) · ${formatMoney(item.total)}',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),

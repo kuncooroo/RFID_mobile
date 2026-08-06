@@ -4,16 +4,31 @@ import '../models/orders_feed.dart';
 import 'orders_repository.dart';
 
 /// Seeded orders repository for tests and UI demos.
+///
+/// Uses a shared in-memory list so Local + Checkout both see the same orders.
 class MockOrdersRepository implements OrdersRepository {
   MockOrdersRepository({
     this.delay = const Duration(milliseconds: 400),
     this.shouldFail = false,
-  });
+    List<Order>? seed,
+  }) {
+    _sharedOrders ??= List<Order>.from(seed ?? _seedOrders);
+  }
+
+  /// Shared singleton used by [LocalOrdersRepository] and checkout wiring.
+  static final MockOrdersRepository shared = MockOrdersRepository();
 
   final Duration delay;
   final bool shouldFail;
 
-  late final List<Order> _orders = List<Order>.from(_seedOrders);
+  static List<Order>? _sharedOrders;
+
+  List<Order> get _orders => _sharedOrders!;
+
+  /// Test helper — resets shared seed data.
+  static void resetShared({List<Order>? seed}) {
+    _sharedOrders = List<Order>.from(seed ?? _seedOrders);
+  }
 
   @override
   Future<OrdersFeed> fetchOrdersFeed() async {
@@ -55,6 +70,20 @@ class MockOrdersRepository implements OrdersRepository {
     }
     return tracking;
   }
+
+  @override
+  Future<Order> createOrder(Order order) async {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    if (shouldFail) throw StateError('Unable to create order');
+
+    final existingIndex = _orders.indexWhere((o) => o.id == order.id);
+    if (existingIndex >= 0) {
+      _orders[existingIndex] = order;
+    } else {
+      _orders.insert(0, order);
+    }
+    return order;
+  }
 }
 
 final _now = DateTime.now();
@@ -68,6 +97,8 @@ final _seedOrders = <Order>[
     subtotal: 168,
     shippingFee: 18,
     currency: 'USD',
+    shippingAddressLabel:
+        'Alex Morgan · 742 Evergreen Terrace, Springfield, IL 62704',
     placedAt: _now.subtract(const Duration(days: 2)),
     updatedAt: _now.subtract(const Duration(hours: 5)),
     items: const [
@@ -107,7 +138,9 @@ final _seedOrders = <Order>[
           id: 'e2',
           title: 'Payment confirmed',
           description: 'Payment was successful',
-          occurredAt: _now.subtract(const Duration(days: 2, hours: -1)),
+          occurredAt: _now.subtract(const Duration(days: 2)).add(
+                const Duration(hours: 1),
+              ),
           isCompleted: true,
         ),
         OrderTrackingEvent(
@@ -141,6 +174,8 @@ final _seedOrders = <Order>[
     subtotal: 96,
     shippingFee: 0,
     currency: 'USD',
+    shippingAddressLabel:
+        'Alex Morgan · 742 Evergreen Terrace, Springfield, IL 62704',
     placedAt: _now.subtract(const Duration(days: 1)),
     updatedAt: _now.subtract(const Duration(hours: 12)),
     items: const [
@@ -191,7 +226,11 @@ final _seedOrders = <Order>[
     orderNumber: 'KU-1031',
     status: OrderStatus.delivered,
     total: 145,
+    subtotal: 145,
+    shippingFee: 0,
     currency: 'USD',
+    shippingAddressLabel:
+        'Alex Morgan · 100 Market Street, Suite 400, San Francisco, CA 94105',
     placedAt: _now.subtract(const Duration(days: 12)),
     updatedAt: _now.subtract(const Duration(days: 8)),
     items: const [
@@ -204,6 +243,33 @@ final _seedOrders = <Order>[
         imageUrl: 'https://picsum.photos/seed/kutuku-p7/200/200',
       ),
     ],
+    tracking: OrderTracking(
+      orderId: 'ord-1031',
+      courierName: 'J&T Express',
+      trackingNumber: 'JT11002233',
+      currentStatus: OrderStatus.delivered,
+      events: [
+        OrderTrackingEvent(
+          id: 'e1',
+          title: 'Order placed',
+          occurredAt: _now.subtract(const Duration(days: 12)),
+          isCompleted: true,
+        ),
+        OrderTrackingEvent(
+          id: 'e2',
+          title: 'Shipped',
+          occurredAt: _now.subtract(const Duration(days: 10)),
+          isCompleted: true,
+        ),
+        OrderTrackingEvent(
+          id: 'e3',
+          title: 'Delivered',
+          description: 'Package delivered to your address',
+          occurredAt: _now.subtract(const Duration(days: 8)),
+          isCompleted: true,
+        ),
+      ],
+    ),
   ),
   Order(
     id: 'ord-1022',

@@ -11,4 +11,11 @@ abstract class MessagingRepository {
     required String threadId,
     required String body,
   });
+
+  /// Opens an existing store thread or creates one for Store Detail → Message.
+  Future<Conversation> findOrCreateStoreConversation({
+    required String storeId,
+    required String storeName,
+    String? avatarUrl,
+  });
 }

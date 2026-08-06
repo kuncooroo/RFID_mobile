@@ -1,0 +1,14 @@
+export 'models/catalog_feed.dart';
+export 'models/category.dart';
+export 'navigation/catalog_navigation.dart';
+export 'presentation/category_page.dart';
+export 'providers/catalog_providers.dart';
+export 'repository/catalog_repository.dart';
+export 'repository/local_catalog_repository.dart';
+export 'repository/mock_catalog_repository.dart';
+export 'state/catalog_state.dart';
+export 'widgets/catalog_category_banner.dart';
+export 'widgets/catalog_category_list.dart';
+export 'widgets/catalog_product_grid.dart';
+export 'widgets/catalog_view.dart';
+export 'widgets/category_products_view.dart';

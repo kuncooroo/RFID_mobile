@@ -12,6 +12,7 @@ import '../providers/checkout_providers.dart';
 import '../state/checkout_state.dart';
 import '../widgets/address_card.dart';
 
+/// Shipping address selection (Figma 1:49).
 class AddressPage extends ConsumerStatefulWidget {
   const AddressPage({super.key});
 
@@ -31,7 +32,12 @@ class _AddressPageState extends ConsumerState<AddressPage> {
 
   void _onContinue() {
     final state = ref.read(checkoutControllerProvider);
-    if (!state.canContinueFromAddress) return;
+    if (!state.canContinueFromAddress) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a delivery address')),
+      );
+      return;
+    }
     CheckoutNavigation.openPayment(context);
   }
 
@@ -46,7 +52,13 @@ class _AddressPageState extends ConsumerState<AddressPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => CheckoutNavigation.pop(context),
+        ),
         title: Text('Address', style: AppTextStyles.headlineSmall),
+        centerTitle: false,
       ),
       body: _buildBody(state, controller),
       bottomNavigationBar: state.addresses.isEmpty
@@ -83,6 +95,17 @@ class _AddressPageState extends ConsumerState<AddressPage> {
         title: 'Could not load addresses',
         message: state.errorMessage ?? 'Please try again.',
         onRetry: controller.loadAddresses,
+      );
+    }
+
+    if (state.addresses.isEmpty) {
+      return Center(
+        child: Text(
+          'No saved addresses yet.',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
       );
     }
 

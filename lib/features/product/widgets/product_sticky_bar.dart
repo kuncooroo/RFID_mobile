@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../models/product.dart';
 
@@ -21,11 +22,10 @@ class ProductStickyBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currency = product.currency == 'USD'
-        ? '\$'
-        : '${product.currency} ';
-    final priceText =
-        '$currency${product.displayPrice.toStringAsFixed(0)}';
+    final priceText = formatMoney(
+      product.displayPrice,
+      currency: product.currency,
+    );
 
     return Container(
       decoration: const BoxDecoration(
@@ -55,7 +55,7 @@ class ProductStickyBar extends StatelessWidget {
                       if (product.hasDiscount) ...[
                         const SizedBox(width: AppSpacing.sm),
                         Text(
-                          '$currency${product.price.toStringAsFixed(0)}',
+                          formatMoney(product.price, currency: product.currency),
                           style: AppTextStyles.bodySmall.copyWith(
                             decoration: TextDecoration.lineThrough,
                           ),

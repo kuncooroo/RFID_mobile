@@ -16,6 +16,10 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (message.senderType == MessageSenderType.system) {
+      return _SystemBubble(message: message);
+    }
+
     final isMine = message.isMine;
 
     return Align(
@@ -34,21 +38,23 @@ class MessageBubble extends StatelessWidget {
                 vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
-                color: isMine ? AppColors.primarySoft : AppColors.surfaceMuted,
+                color: isMine ? AppColors.primary : AppColors.surfaceMuted,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(AppRadius.lg),
                   topRight: const Radius.circular(AppRadius.lg),
-                  bottomLeft: Radius.circular(isMine ? AppRadius.lg : AppRadius.xs),
-                  bottomRight: Radius.circular(isMine ? AppRadius.xs : AppRadius.lg),
+                  bottomLeft:
+                      Radius.circular(isMine ? AppRadius.lg : AppRadius.xs),
+                  bottomRight:
+                      Radius.circular(isMine ? AppRadius.xs : AppRadius.lg),
                 ),
-                border: isMine
-                    ? Border.all(color: AppColors.primaryLight.withValues(alpha: 0.45))
-                    : null,
               ),
               child: Text(
                 message.body,
                 style: AppTextStyles.bodyMedium.copyWith(
-                  color: isMine ? AppColors.textPrimary : AppColors.textPrimary,
+                  color: isMine
+                      ? AppColors.textOnPrimary
+                      : AppColors.textPrimary,
+                  height: 1.4,
                 ),
               ),
             ),
@@ -69,9 +75,47 @@ class MessageBubble extends StatelessWidget {
 
   String _formatBubbleTime(DateTime value) {
     final local = value.toLocal();
-    final hour = local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
+    final hour =
+        local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
     final minute = local.minute.toString().padLeft(2, '0');
     final period = local.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
+  }
+}
+
+class _SystemBubble extends StatelessWidget {
+  const _SystemBubble({required this.message});
+
+  final Message message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width * 0.85,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: AppRadius.pillAll,
+            ),
+            child: Text(
+              message.body,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -27,10 +27,15 @@ import '../../features/orders/presentation/order_track_page.dart';
 import '../../features/orders/presentation/orders_page.dart';
 import '../../features/profile/presentation/change_password_page.dart';
 import '../../features/profile/presentation/edit_profile_page.dart';
+import '../../features/profile/presentation/help_support_page.dart';
+import '../../features/profile/presentation/language_page.dart';
+import '../../features/profile/presentation/legal_policies_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
+import '../../features/profile/presentation/security_page.dart';
 import '../../features/profile/presentation/settings_detail_pages.dart';
 import '../../features/profile/presentation/settings_page.dart';
-import '../../features/shell/presentation/notifications_page.dart';
+import '../../features/notifications/presentation/notifications_page.dart';
+import '../../features/rfid/presentation/rfid_scan_screen.dart';
 import '../../features/shell/widgets/main_shell.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import 'app_routes.dart';
@@ -80,11 +85,9 @@ String? _authRedirect(Ref ref, GoRouterState state) {
     return isSplash ? null : AppRoutes.splash;
   }
 
+  // Splash owns navigation after bootstrap / Statistics CTA.
   if (isSplash) {
-    if (!session.hasSeenOnboarding) return AppRoutes.onboarding;
-    return session.isAuthenticated
-        ? AppRoutes.dashboard
-        : (session.authEntryRoute ?? AppRoutes.login);
+    return null;
   }
 
   if (!session.hasSeenOnboarding && !isOnboarding) {
@@ -253,6 +256,42 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const ProfilePage(),
                 routes: [
                   GoRoute(
+                    path: 'edit-profile',
+                    name: 'editProfile',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const EditProfilePage(),
+                  ),
+                  GoRoute(
+                    path: 'change-password',
+                    name: 'changePassword',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const ChangePasswordPage(),
+                  ),
+                  GoRoute(
+                    path: 'language',
+                    name: 'language',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const LanguagePage(),
+                  ),
+                  GoRoute(
+                    path: 'security',
+                    name: 'security',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const SecurityPage(),
+                  ),
+                  GoRoute(
+                    path: 'help',
+                    name: 'helpSupport',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const HelpSupportPage(),
+                  ),
+                  GoRoute(
+                    path: 'legal',
+                    name: 'legalPolicies',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const LegalPoliciesPage(),
+                  ),
+                  GoRoute(
                     path: 'settings',
                     name: 'settings',
                     parentNavigatorKey: _rootNavigatorKey,
@@ -260,13 +299,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     routes: [
                       GoRoute(
                         path: 'edit-profile',
-                        name: 'editProfile',
-                        builder: (context, state) => const EditProfilePage(),
+                        redirect: (context, state) => AppRoutes.editProfile,
                       ),
                       GoRoute(
                         path: 'change-password',
-                        name: 'changePassword',
-                        builder: (context, state) => const ChangePasswordPage(),
+                        redirect: (context, state) => AppRoutes.changePassword,
                       ),
                       GoRoute(
                         path: 'notifications',
@@ -276,23 +313,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       ),
                       GoRoute(
                         path: 'security',
-                        name: 'security',
-                        builder: (context, state) => const SecurityPage(),
+                        redirect: (context, state) => AppRoutes.security,
                       ),
                       GoRoute(
                         path: 'language',
-                        name: 'language',
-                        builder: (context, state) => const LanguagePage(),
+                        redirect: (context, state) => AppRoutes.language,
                       ),
                       GoRoute(
                         path: 'help',
-                        name: 'helpSupport',
-                        builder: (context, state) => const HelpSupportPage(),
+                        redirect: (context, state) => AppRoutes.helpSupport,
                       ),
                       GoRoute(
                         path: 'legal',
-                        name: 'legalPolicies',
-                        builder: (context, state) => const LegalPoliciesPage(),
+                        redirect: (context, state) => AppRoutes.legalPolicies,
                       ),
                     ],
                   ),
@@ -440,6 +473,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'notifications',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const NotificationsPage(),
+      ),
+
+      // ─────────────────────────────────────────────
+      // RFID self-service scan
+      // ─────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.rfidScan,
+        name: 'rfidScan',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const RfidScanScreen(),
       ),
 
       // ─────────────────────────────────────────────

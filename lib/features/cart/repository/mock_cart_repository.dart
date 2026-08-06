@@ -105,6 +105,15 @@ class MockCartRepository implements CartRepository {
     _cart = _cart.copyWith(items: items);
     return _cart;
   }
+
+  @override
+  Future<Cart> removeItems(List<String> itemIds) async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    final ids = itemIds.toSet();
+    final items = _cart.items.where((item) => !ids.contains(item.id)).toList();
+    _cart = _cart.copyWith(items: items);
+    return _cart;
+  }
 }
 
 Cart _seedCart() {

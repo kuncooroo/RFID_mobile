@@ -10,6 +10,7 @@ abstract final class AppAssets {
   static const String logo = '$_images/logo.png';
   static const String logoMark = '$_images/logo_mark.png';
   static const String splash = '$_images/splash.png';
+  static const String statisticsHero = '$_illustrations/onboarding_1.png';
 
   // Placeholders
   static const String placeholderProduct = '$_images/placeholder_product.png';

@@ -5,6 +5,7 @@ import '../design_system/radius.dart';
 import '../design_system/sizes.dart';
 import '../design_system/spacing.dart';
 import '../design_system/text_styles.dart';
+import 'app_badge.dart';
 
 /// Search field used on Home entry, Search, Results, and Store filter hosts.
 class AppSearchBar extends StatelessWidget {
@@ -17,9 +18,12 @@ class AppSearchBar extends StatelessWidget {
     this.onSubmitted,
     this.onTap,
     this.onFilterTap,
+    this.onClear,
     this.readOnly = false,
     this.autofocus = false,
     this.showFilter = false,
+    this.filterActive = false,
+    this.showClear = false,
     this.leading,
     this.trailing,
   });
@@ -31,9 +35,12 @@ class AppSearchBar extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onTap;
   final VoidCallback? onFilterTap;
+  final VoidCallback? onClear;
   final bool readOnly;
   final bool autofocus;
   final bool showFilter;
+  final bool filterActive;
+  final bool showClear;
   final Widget? leading;
   final Widget? trailing;
 
@@ -75,18 +82,7 @@ class AppSearchBar extends StatelessWidget {
             minWidth: AppSizes.iconButton,
             minHeight: AppSizes.iconButton,
           ),
-          suffixIcon:
-              trailing ??
-              (showFilter
-                  ? IconButton(
-                      onPressed: onFilterTap,
-                      icon: const Icon(
-                        Icons.tune_rounded,
-                        color: AppColors.textPrimary,
-                        size: AppSizes.iconMd,
-                      ),
-                    )
-                  : null),
+          suffixIcon: trailing ?? _buildSuffix(),
           border: OutlineInputBorder(
             borderRadius: AppRadius.input,
             borderSide: BorderSide.none,
@@ -104,6 +100,55 @@ class AppSearchBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget? _buildSuffix() {
+    final children = <Widget>[];
+
+    if (showClear && onClear != null) {
+      children.add(
+        IconButton(
+          tooltip: 'Clear',
+          onPressed: onClear,
+          icon: const Icon(
+            Icons.close_rounded,
+            color: AppColors.textSecondary,
+            size: AppSizes.iconSm,
+          ),
+        ),
+      );
+    }
+
+    if (showFilter) {
+      children.add(
+        IconButton(
+          tooltip: 'Filter',
+          onPressed: onFilterTap,
+          icon: filterActive
+              ? AppBadge.dot(
+                  offset: const Offset(4, 4),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    color: AppColors.textPrimary,
+                    size: AppSizes.iconMd,
+                  ),
+                )
+              : const Icon(
+                  Icons.tune_rounded,
+                  color: AppColors.textPrimary,
+                  size: AppSizes.iconMd,
+                ),
+        ),
+      );
+    }
+
+    if (children.isEmpty) return null;
+    if (children.length == 1) return children.first;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: children,
     );
   }
 }

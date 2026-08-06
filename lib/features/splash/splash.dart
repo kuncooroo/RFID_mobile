@@ -1,4 +1,5 @@
 export 'models/splash_bootstrap_result.dart';
+export 'models/splash_statistic.dart';
 export 'navigation/splash_navigation.dart';
 export 'presentation/splash_page.dart';
 export 'providers/splash_providers.dart';
@@ -8,3 +9,4 @@ export 'repository/splash_repository.dart';
 export 'state/splash_state.dart';
 export 'widgets/splash_logo.dart';
 export 'widgets/splash_view.dart';
+export 'widgets/statistics_intro_view.dart';

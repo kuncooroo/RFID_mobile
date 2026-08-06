@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_routes.dart';
 import '../../../shared/design_system/app_icons.dart';
+import '../../../shared/design_system/colors.dart';
+import '../../../shared/design_system/sizes.dart';
 import '../../../shared/widgets/app_bottom_navigation.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../models/shell_tab.dart';
 import '../providers/shell_providers.dart';
 
-/// Main app shell with GoRouter [StatefulNavigationShell] + bottom navigation.
+/// Main app shell with GoRouter [StatefulNavigationShell] + docked RFID FAB.
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -28,6 +31,10 @@ class _MainShellState extends ConsumerState<MainShell> {
     });
   }
 
+  void _openRfidScan() {
+    context.push(AppRoutes.rfidScan);
+  }
+
   @override
   Widget build(BuildContext context) {
     final badges = ref.watch(shellControllerProvider).badges;
@@ -41,8 +48,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       ),
       AppBottomNavItem(
         label: 'My Order',
-        icon: Icons.local_shipping_outlined,
-        activeIcon: Icons.local_shipping_rounded,
+        icon: Icons.shopping_bag_outlined,
+        activeIcon: Icons.shopping_bag_rounded,
         badgeCount: badges.activeOrders > 0 ? badges.activeOrders : null,
       ),
       const AppBottomNavItem(
@@ -59,13 +66,39 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     return Scaffold(
       body: widget.navigationShell,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: _RfidScanFab(onPressed: _openRfidScan),
       bottomNavigationBar: AppBottomNavigation(
         items: items,
         currentIndex: current.branchIndex,
+        hasCenterFab: true,
         onTap: (index) => widget.navigationShell.goBranch(
           index,
           initialLocation: index == widget.navigationShell.currentIndex,
         ),
+      ),
+    );
+  }
+}
+
+class _RfidScanFab extends StatelessWidget {
+  const _RfidScanFab({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: AppSizes.fabSize,
+      height: AppSizes.fabSize,
+      child: FloatingActionButton(
+        onPressed: onPressed,
+        tooltip: 'Scan RFID Member',
+        elevation: 6,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.sensors_rounded, size: 28),
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../providers/checkout_providers.dart';
 import '../state/checkout_state.dart';
 import '../widgets/add_card_form.dart';
 
+/// Add New Card form (Figma 1:51).
 class AddCardPage extends ConsumerStatefulWidget {
   const AddCardPage({super.key});
 
@@ -28,7 +29,15 @@ class _AddCardPageState extends ConsumerState<AddCardPage> {
     if (!mounted) return;
     setState(() => _isSaving = false);
     if (method != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Card added successfully')),
+      );
       CheckoutNavigation.pop(context);
+    } else {
+      final error = ref.read(checkoutControllerProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error ?? 'Could not add card')),
+      );
     }
   }
 
@@ -40,7 +49,13 @@ class _AddCardPageState extends ConsumerState<AddCardPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => CheckoutNavigation.pop(context),
+        ),
         title: Text('Add New Card', style: AppTextStyles.headlineSmall),
+        centerTitle: false,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(

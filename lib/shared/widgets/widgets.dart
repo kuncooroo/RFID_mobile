@@ -20,6 +20,7 @@ export 'app_image.dart';
 export 'app_loading.dart';
 export 'app_password_field.dart';
 export 'app_product_card.dart';
+export 'app_product_grid.dart';
 export 'app_qty_stepper.dart';
 export 'app_rating.dart';
 export 'app_search_bar.dart';

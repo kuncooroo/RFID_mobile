@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/app_assets.dart';
+import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
+import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_state.dart';
 import '../../../shared/widgets/app_loading.dart';
@@ -12,6 +14,7 @@ import '../state/orders_state.dart';
 import 'order_card.dart';
 import 'orders_segment_tabs.dart';
 
+/// My Order list (Figma `1:53` Active / History segments).
 class OrdersView extends StatelessWidget {
   const OrdersView({
     super.key,
@@ -139,7 +142,13 @@ class _HistoryList extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: onSeeAll,
-                child: const Text('See all history'),
+                child: Text(
+                  'See all history',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           for (final item in items) ...[

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
+import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_state.dart';
 import '../../../shared/widgets/app_loading.dart';
@@ -11,6 +13,7 @@ import '../state/search_state.dart';
 import 'search_results_grid.dart';
 import 'search_sort_chips.dart';
 
+/// Search Result body — sort chips, result count, product grid.
 class SearchResultsView extends StatelessWidget {
   const SearchResultsView({
     super.key,
@@ -48,12 +51,24 @@ class SearchResultsView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: AppSpacing.md),
               SearchSortChips(
                 selected: state.filter.sort,
                 onSelected: onSortSelected,
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
+              if (!state.isEmptyResults)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenHorizontal,
+                  ),
+                  child: Text(
+                    '${state.results.length} result${state.results.length == 1 ? '' : 's'} found',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: AppSpacing.md),
             ],
           ),
         ),
@@ -62,13 +77,8 @@ class SearchResultsView extends StatelessWidget {
             hasScrollBody: false,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-              child: AppEmptyState(
-                title: 'No results found',
-                message:
-                    'Try a different keyword or adjust your filters to find what you need.',
-                icon: Icons.search_off_rounded,
-                actionLabel: state.filter.hasActiveFilters ? 'Clear filters' : null,
-                onAction: state.filter.hasActiveFilters ? onResetFilter : null,
+              child: AppEmptyStates.search(
+                onAction: state.filter.hasSheetFilters ? onResetFilter : null,
               ),
             ),
           )

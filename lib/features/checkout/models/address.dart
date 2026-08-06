@@ -37,6 +37,9 @@ class Address {
     return parts.join(', ');
   }
 
+  /// Compact label for order receipts / tracking.
+  String get oneLineLabel => '$recipientName · $fullAddress';
+
   Address copyWith({
     String? id,
     String? label,

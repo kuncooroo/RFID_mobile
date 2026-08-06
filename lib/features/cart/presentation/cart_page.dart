@@ -8,7 +8,7 @@ import '../navigation/cart_navigation.dart';
 import '../providers/cart_providers.dart';
 import '../widgets/cart_view.dart';
 
-/// My Cart screen (root navigator).
+/// My Cart screen (Figma 1:45 / 1:46 / 1:47).
 class CartPage extends ConsumerStatefulWidget {
   const CartPage({super.key});
 
@@ -40,7 +40,12 @@ class _CartPageState extends ConsumerState<CartPage> {
 
   void _onCheckout() {
     final state = ref.read(cartControllerProvider);
-    if (!state.hasSelection) return;
+    if (!state.hasSelection) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one item to checkout')),
+      );
+      return;
+    }
     CartNavigation.openCheckout(context);
   }
 
@@ -55,7 +60,13 @@ class _CartPageState extends ConsumerState<CartPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => CartNavigation.pop(context),
+        ),
         title: Text('My Cart', style: AppTextStyles.headlineSmall),
+        centerTitle: false,
       ),
       body: CartView(
         state: state,

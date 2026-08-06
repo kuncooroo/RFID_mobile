@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/widgets/app_button.dart';
 
+/// Sticky checkout CTA bar for My Cart.
 class CartCheckoutBar extends StatelessWidget {
   const CartCheckoutBar({
     super.key,
@@ -31,13 +33,6 @@ class CartCheckoutBar extends StatelessWidget {
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, -4),
-          ),
-        ],
       ),
       child: SafeArea(
         top: false,
@@ -55,10 +50,7 @@ class CartCheckoutBar extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    '\$${total.toStringAsFixed(2)}',
-                    style: AppTextStyles.priceLarge,
-                  ),
+                  Text(formatMoney(total), style: AppTextStyles.priceLarge),
                 ],
               ),
             ),

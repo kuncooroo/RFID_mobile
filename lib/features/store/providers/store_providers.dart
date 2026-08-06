@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../product/models/product.dart';
 import '../repository/local_store_repository.dart';
 import '../repository/mock_store_repository.dart';
 import '../repository/store_repository.dart';
@@ -37,16 +38,26 @@ class StoreDetailController extends Notifier<StoreDetailState> {
       status: StoreDetailStatus.loading,
       clearError: true,
     );
+    await _fetch(status: StoreDetailStatus.ready);
+  }
+
+  Future<void> refresh() async {
+    state = state.copyWith(
+      status: StoreDetailStatus.refreshing,
+      clearError: true,
+    );
+    await _fetch(status: StoreDetailStatus.ready);
+  }
+
+  Future<void> _fetch({required StoreDetailStatus status}) async {
     try {
       final repo = ref.read(storeRepositoryProvider);
       final store = await repo.fetchStore(storeId);
       final products = await repo.fetchStoreProducts(storeId);
-      final isFollowing = repo is MockStoreRepository
-          ? repo.isFollowing(storeId)
-          : false;
+      final isFollowing = await repo.isFollowing(storeId);
       state = state.copyWith(
-        status: StoreDetailStatus.ready,
-        store: store,
+        status: status,
+        store: store.copyWith(productCount: products.length),
         products: products,
         isFollowing: isFollowing,
       );
@@ -54,22 +65,43 @@ class StoreDetailController extends Notifier<StoreDetailState> {
       state = state.copyWith(
         status: StoreDetailStatus.failure,
         errorMessage: error.toString(),
-        clearStore: true,
+        clearStore: state.store == null,
       );
     }
   }
 
   Future<void> toggleFollow() async {
     final wasFollowing = state.isFollowing;
-    state = state.copyWith(isFollowing: !wasFollowing);
+    final store = state.store;
+    state = state.copyWith(
+      isFollowing: !wasFollowing,
+      store: store?.copyWith(
+        followersCount: wasFollowing
+            ? (store.followersCount - 1).clamp(0, 1 << 30)
+            : store.followersCount + 1,
+      ),
+    );
 
     try {
       await ref.read(storeRepositoryProvider).toggleFollow(storeId);
     } catch (error) {
       state = state.copyWith(
         isFollowing: wasFollowing,
+        store: store,
         errorMessage: error.toString(),
       );
     }
+  }
+
+  Future<void> toggleFavorite(Product product) async {
+    await ref.read(storeRepositoryProvider).toggleFavorite(product.id);
+    state = state.copyWith(
+      products: state.products
+          .map(
+            (p) =>
+                p.id == product.id ? p.copyWith(isFavorite: !p.isFavorite) : p,
+          )
+          .toList(),
+    );
   }
 }

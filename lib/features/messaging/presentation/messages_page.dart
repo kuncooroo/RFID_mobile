@@ -7,7 +7,7 @@ import '../navigation/messaging_navigation.dart';
 import '../providers/messaging_providers.dart';
 import '../widgets/messages_view.dart';
 
-/// Message list screen opened from profile or shell chrome.
+/// Message list screen (Figma `1:57`).
 class MessagesPage extends ConsumerStatefulWidget {
   const MessagesPage({super.key});
 
@@ -36,7 +36,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => MessagingNavigation.pop(context),
+        ),
         title: Text('Message', style: AppTextStyles.headlineSmall),
+        centerTitle: false,
       ),
       body: MessagesView(
         state: state,
