@@ -1,4 +1,5 @@
 import '../models/product.dart';
+import '../models/review.dart';
 import 'product_repository.dart';
 
 /// Seeded product detail data for tests and UI demos.
@@ -26,6 +27,30 @@ class MockProductRepository implements ProductRepository {
     }
 
     return product.copyWith(isFavorite: _favoriteIds.contains(id));
+  }
+
+  @override
+  Future<List<Review>> fetchReviews(String productId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    if (shouldFail) throw StateError('Unable to load reviews');
+    return [
+      Review(
+        id: 'r1',
+        productId: productId,
+        rating: 5,
+        memberName: 'Alex M.',
+        comment: 'Great quality and fast shipping.',
+        createdAt: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+      Review(
+        id: 'r2',
+        productId: productId,
+        rating: 4,
+        memberName: 'Jordan K.',
+        comment: 'Looks exactly like the photos.',
+        createdAt: DateTime.now().subtract(const Duration(days: 8)),
+      ),
+    ];
   }
 
   @override

@@ -13,9 +13,9 @@ class RegisterSuccessPage extends StatelessWidget {
         child: AuthSuccessView(
           title: 'Account Created!',
           message:
-              'Your Kutuku account is ready. Sign in to start exploring products.',
-          actionLabel: 'Go to Login',
-          onAction: () => AuthNavigation.goToLogin(context),
+              'Your Kutuku account is ready. Start exploring products now.',
+          actionLabel: 'Continue Shopping',
+          onAction: () => AuthNavigation.goToDashboard(context),
         ),
       ),
     );

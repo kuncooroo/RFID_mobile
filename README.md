@@ -136,6 +136,8 @@ php artisan storage:link
 ```
 
 > Seeder hanya berjalan di environment `local` / `testing`.
+>
+> Demo seed sekarang mencakup **alamat + metode pembayaran** untuk `demo@kutuku.test`, selain katalog produk.
 
 ### 3.5 Jalankan API
 

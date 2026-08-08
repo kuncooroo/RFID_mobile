@@ -25,6 +25,66 @@ class MockCheckoutRepository implements CheckoutRepository {
   }
 
   @override
+  Future<Address> createAddress(AddressInput input) async {
+    await Future<void>.delayed(delay);
+    if (shouldFail) throw StateError('Unable to save address');
+    final address = Address(
+      id: 'addr-${_addresses.length + 1}',
+      label: input.label,
+      recipientName: input.recipientName,
+      phone: input.phone,
+      street: input.street,
+      city: input.city,
+      state: input.state,
+      postalCode: input.postalCode,
+      country: input.country,
+      isDefault: input.isDefault || _addresses.isEmpty,
+      notes: input.notes,
+    );
+    if (address.isDefault) {
+      for (var i = 0; i < _addresses.length; i++) {
+        _addresses[i] = _addresses[i].copyWith(isDefault: false);
+      }
+    }
+    _addresses.add(address);
+    return address;
+  }
+
+  @override
+  Future<Address> updateAddress(String addressId, AddressInput input) async {
+    await Future<void>.delayed(delay);
+    if (shouldFail) throw StateError('Unable to update address');
+    final index = _addresses.indexWhere((a) => a.id == addressId);
+    if (index == -1) throw StateError('Address not found');
+    final updated = _addresses[index].copyWith(
+      label: input.label,
+      recipientName: input.recipientName,
+      phone: input.phone,
+      street: input.street,
+      city: input.city,
+      state: input.state,
+      postalCode: input.postalCode,
+      country: input.country,
+      isDefault: input.isDefault,
+      notes: input.notes,
+    );
+    if (updated.isDefault) {
+      for (var i = 0; i < _addresses.length; i++) {
+        _addresses[i] = _addresses[i].copyWith(isDefault: i == index);
+      }
+    }
+    _addresses[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<void> deleteAddress(String addressId) async {
+    await Future<void>.delayed(delay);
+    if (shouldFail) throw StateError('Unable to delete address');
+    _addresses.removeWhere((a) => a.id == addressId);
+  }
+
+  @override
   Future<List<PaymentMethod>> fetchPaymentMethods() async {
     await Future<void>.delayed(delay);
     if (shouldFail) throw StateError('Unable to load payment methods');

@@ -82,6 +82,68 @@ class CheckoutController extends Notifier<CheckoutState> {
     state = state.copyWith(selectedPaymentId: paymentMethodId);
   }
 
+  Future<Address?> saveAddress(AddressInput input, {String? addressId}) async {
+    state = state.copyWith(savingAddress: true, clearError: true);
+    try {
+      final repo = ref.read(checkoutRepositoryProvider);
+      final saved = addressId == null
+          ? await repo.createAddress(input)
+          : await repo.updateAddress(addressId, input);
+
+      final addresses = [...state.addresses];
+      final index = addresses.indexWhere((a) => a.id == saved.id);
+      if (index == -1) {
+        addresses.add(saved);
+      } else {
+        addresses[index] = saved;
+      }
+
+      if (saved.isDefault) {
+        for (var i = 0; i < addresses.length; i++) {
+          if (addresses[i].id != saved.id && addresses[i].isDefault) {
+            addresses[i] = addresses[i].copyWith(isDefault: false);
+          }
+        }
+      }
+
+      state = state.copyWith(
+        savingAddress: false,
+        status: CheckoutStatus.ready,
+        addresses: addresses,
+        selectedAddressId: saved.id,
+      );
+      return saved;
+    } catch (error) {
+      state = state.copyWith(
+        savingAddress: false,
+        errorMessage: error.toString(),
+      );
+      return null;
+    }
+  }
+
+  Future<bool> deleteAddress(String addressId) async {
+    state = state.copyWith(clearError: true);
+    try {
+      await ref.read(checkoutRepositoryProvider).deleteAddress(addressId);
+      final addresses =
+          state.addresses.where((a) => a.id != addressId).toList();
+      final selectedStillValid =
+          addresses.any((a) => a.id == state.selectedAddressId);
+      state = state.copyWith(
+        addresses: addresses,
+        selectedAddressId: selectedStillValid
+            ? state.selectedAddressId
+            : _defaultAddress(addresses)?.id,
+        clearSelectedAddress: !selectedStillValid && addresses.isEmpty,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      return false;
+    }
+  }
+
   Future<PaymentMethod?> addCard(NewCardInput input) async {
     state = state.copyWith(clearError: true);
     try {

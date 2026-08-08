@@ -73,6 +73,15 @@ class RemoteOrdersRepository implements OrdersRepository {
     }
   }
 
+  @override
+  Future<Order> cancelOrder(String orderId) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      ApiEndpoints.orderCancel(orderId),
+      parser: _asMap,
+    );
+    return _mapOrder(data);
+  }
+
   Order _mapOrder(Map<String, dynamic> json) {
     final trackingEvents = json['tracking_events'];
     final mapped = Map<String, dynamic>.from(json);

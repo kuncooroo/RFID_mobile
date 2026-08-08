@@ -129,6 +129,31 @@ class OrderTrackController extends Notifier<OrderTrackState> {
   Future<void> refresh() async {
     await load();
   }
+
+  Future<bool> cancel() async {
+    final order = state.order;
+    if (order == null || !order.canCancel || state.isCancelling) return false;
+
+    state = state.copyWith(isCancelling: true, clearError: true);
+    try {
+      final cancelled = await ref
+          .read(ordersRepositoryProvider)
+          .cancelOrder(orderId);
+      state = state.copyWith(
+        isCancelling: false,
+        status: OrderTrackStatus.ready,
+        order: cancelled,
+      );
+      await ref.read(ordersControllerProvider.notifier).reloadAfterCheckout();
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isCancelling: false,
+        errorMessage: error.toString(),
+      );
+      return false;
+    }
+  }
 }
 
 /// Builds the initial tracking timeline for a freshly paid order.

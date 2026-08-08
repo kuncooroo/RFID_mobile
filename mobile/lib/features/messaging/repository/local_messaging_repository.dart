@@ -19,6 +19,10 @@ class LocalMessagingRepository implements MessagingRepository {
       _delegate.fetchMessages(threadId);
 
   @override
+  Future<void> markConversationRead(String threadId) =>
+      _delegate.markConversationRead(threadId);
+
+  @override
   Future<Message> sendMessage({
     required String threadId,
     required String body,

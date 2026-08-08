@@ -6,6 +6,12 @@ import '../state/checkout_state.dart';
 abstract class CheckoutRepository {
   Future<List<Address>> fetchAddresses();
 
+  Future<Address> createAddress(AddressInput input);
+
+  Future<Address> updateAddress(String addressId, AddressInput input);
+
+  Future<void> deleteAddress(String addressId);
+
   Future<List<PaymentMethod>> fetchPaymentMethods();
 
   Future<PaymentMethod> addCard(NewCardInput input);

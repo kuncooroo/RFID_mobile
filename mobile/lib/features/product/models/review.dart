@@ -19,13 +19,20 @@ class Review {
   final DateTime? createdAt;
 
   factory Review.fromJson(Map<String, dynamic> json) {
+    final user = json['user'];
+    String? memberName = json['member_name'] as String? ?? json['user_name'] as String?;
+    String? avatar = json['member_avatar_url'] as String?;
+    if (user is Map) {
+      memberName ??= user['name'] as String?;
+      avatar ??= user['avatar_url'] as String? ?? user['avatar_path'] as String?;
+    }
+
     return Review(
       id: json['id'].toString(),
       productId: json['product_id'].toString(),
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
-      memberName:
-          json['member_name'] as String? ?? json['user_name'] as String?,
-      memberAvatarUrl: json['member_avatar_url'] as String?,
+      memberName: memberName,
+      memberAvatarUrl: avatar,
       comment: json['comment'] as String? ?? json['body'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())

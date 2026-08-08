@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../store/providers/store_providers.dart';
+import '../models/review.dart';
 import '../repository/mock_product_repository.dart';
 import '../repository/product_repository.dart';
 import '../state/product_detail_state.dart';
@@ -62,9 +63,19 @@ class ProductDetailController extends Notifier<ProductDetailState> {
         }
       }
 
+      List<Review> reviews = const [];
+      try {
+        reviews = await ref
+            .read(productRepositoryProvider)
+            .fetchReviews(productId);
+      } catch (_) {
+        // Reviews are optional on the detail page.
+      }
+
       state = state.copyWith(
         status: ProductDetailStatus.ready,
         product: product,
+        reviews: reviews,
         selectedColorId: defaultColorId,
         selectedSize: defaultSize,
         quantity: 1,

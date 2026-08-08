@@ -9,6 +9,7 @@ import '../navigation/product_navigation.dart';
 import '../state/product_detail_state.dart';
 import 'product_gallery.dart';
 import 'product_info_section.dart';
+import 'product_reviews_section.dart';
 
 /// Product Detail scroll body — gallery hero + overlapping content sheet.
 class ProductDetailView extends StatelessWidget {
@@ -96,6 +97,12 @@ class ProductDetailView extends StatelessWidget {
                   ? () => ProductNavigation.openStore(context, product.storeId!)
                   : null,
             ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: ColoredBox(
+            color: AppColors.background,
+            child: ProductReviewsSection(reviews: state.reviews),
           ),
         ),
       ],

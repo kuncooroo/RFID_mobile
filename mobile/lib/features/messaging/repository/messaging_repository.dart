@@ -7,6 +7,8 @@ abstract class MessagingRepository {
 
   Future<List<Message>> fetchMessages(String threadId);
 
+  Future<void> markConversationRead(String threadId);
+
   Future<Message> sendMessage({
     required String threadId,
     required String body,

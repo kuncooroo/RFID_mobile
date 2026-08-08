@@ -84,6 +84,24 @@ class MockOrdersRepository implements OrdersRepository {
     }
     return order;
   }
+
+  @override
+  Future<Order> cancelOrder(String orderId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (shouldFail) throw StateError('Unable to cancel order');
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index < 0) throw StateError('Order not found');
+    final current = _orders[index];
+    if (!current.canCancel) {
+      throw StateError('Order cannot be cancelled');
+    }
+    final cancelled = current.copyWith(
+      status: OrderStatus.cancelled,
+      updatedAt: DateTime.now(),
+    );
+    _orders[index] = cancelled;
+    return cancelled;
+  }
 }
 
 final _now = DateTime.now();

@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Address;
 use App\Models\Category;
 use App\Models\Member;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductColor;
 use App\Models\ProductImage;
@@ -47,6 +49,45 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $user->cart()->create(['currency' => 'USD']);
+
+        Address::query()->create([
+            'user_id' => $user->id,
+            'label' => 'Home',
+            'recipient_name' => 'Demo User',
+            'phone' => '+10000000001',
+            'line1' => '742 Evergreen Terrace',
+            'line2' => null,
+            'city' => 'Jakarta',
+            'state' => 'DKI Jakarta',
+            'postal_code' => '10110',
+            'country' => 'ID',
+            'is_default' => true,
+        ]);
+
+        Address::query()->create([
+            'user_id' => $user->id,
+            'label' => 'Office',
+            'recipient_name' => 'Demo User',
+            'phone' => '+10000000001',
+            'line1' => '100 Market Street, Suite 400',
+            'city' => 'Jakarta',
+            'state' => 'DKI Jakarta',
+            'postal_code' => '10310',
+            'country' => 'ID',
+            'is_default' => false,
+        ]);
+
+        PaymentMethod::query()->create([
+            'user_id' => $user->id,
+            'type' => 'card',
+            'brand' => 'visa',
+            'last4' => '4242',
+            'holder_name' => 'Demo User',
+            'expiry_month' => 8,
+            'expiry_year' => 2028,
+            'provider_token' => 'tok_demo_visa_4242',
+            'is_default' => true,
+        ]);
 
         RfidMember::query()->create([
             'user_id' => $user->id,

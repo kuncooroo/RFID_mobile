@@ -1,6 +1,7 @@
 import '../../../src/network/api_client.dart';
 import '../../../src/network/api_endpoints.dart';
 import '../models/product.dart';
+import '../models/review.dart';
 import 'product_repository.dart';
 
 class RemoteProductRepository implements ProductRepository {
@@ -15,6 +16,21 @@ class RemoteProductRepository implements ProductRepository {
       parser: (d) => d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{},
     );
     return Product.fromJson(data);
+  }
+
+  @override
+  Future<List<Review>> fetchReviews(String productId) async {
+    final data = await _api.get<List<Map<String, dynamic>>>(
+      ApiEndpoints.productReviews(productId),
+      parser: (raw) {
+        if (raw is! List) return const <Map<String, dynamic>>[];
+        return raw
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      },
+    );
+    return data.map(Review.fromJson).toList();
   }
 
   @override

@@ -14,4 +14,6 @@ abstract class OrdersRepository {
 
   /// Persists a newly placed order (from checkout) into the local feed.
   Future<Order> createOrder(Order order);
+
+  Future<Order> cancelOrder(String orderId);
 }

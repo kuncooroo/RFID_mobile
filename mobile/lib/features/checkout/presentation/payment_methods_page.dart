@@ -5,6 +5,7 @@ import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_loading.dart';
 import '../navigation/checkout_navigation.dart';
 import '../providers/checkout_providers.dart';
@@ -62,25 +63,33 @@ class _PaymentMethodsPageState extends ConsumerState<PaymentMethodsPage> {
       ),
       body: state.isLoading && state.paymentMethods.isEmpty
           ? const AppLoading.page(message: 'Loading cards…')
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.screenHorizontal,
-                AppSpacing.md,
-                AppSpacing.screenHorizontal,
-                AppSpacing.xxxl,
-              ),
-              itemCount: state.paymentMethods.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: AppSpacing.listItem),
-              itemBuilder: (context, index) {
-                final method = state.paymentMethods[index];
-                return PaymentMethodTile(
-                  method: method,
-                  isSelected: state.selectedPaymentId == method.id,
-                  onTap: () => _onSelect(method.id),
-                );
-              },
-            ),
+          : state.paymentMethods.isEmpty
+              ? AppEmptyState(
+                  title: 'No payment methods',
+                  message: 'Add a card to complete checkout.',
+                  icon: Icons.credit_card_outlined,
+                  actionLabel: 'Add New Card',
+                  onAction: () => CheckoutNavigation.openAddCard(context),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.screenHorizontal,
+                    AppSpacing.md,
+                    AppSpacing.screenHorizontal,
+                    AppSpacing.xxxl,
+                  ),
+                  itemCount: state.paymentMethods.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.listItem),
+                  itemBuilder: (context, index) {
+                    final method = state.paymentMethods[index];
+                    return PaymentMethodTile(
+                      method: method,
+                      isSelected: state.selectedPaymentId == method.id,
+                      onTap: () => _onSelect(method.id),
+                    );
+                  },
+                ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenHorizontal,

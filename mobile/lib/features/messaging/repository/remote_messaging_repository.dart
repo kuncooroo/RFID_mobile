@@ -28,6 +28,11 @@ class RemoteMessagingRepository implements MessagingRepository {
   }
 
   @override
+  Future<void> markConversationRead(String threadId) async {
+    await _api.post<dynamic>(ApiEndpoints.conversationRead(threadId));
+  }
+
+  @override
   Future<Message> sendMessage({
     required String threadId,
     required String body,

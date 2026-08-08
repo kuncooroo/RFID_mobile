@@ -46,6 +46,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           password: _passwordController.text,
         );
     if (!mounted || !ok) return;
+    // Session is authenticated; GoRouter redirects auth routes → Home.
+    // Keep success screen as a soft landing when redirect is delayed.
     AuthNavigation.goToRegisterSuccess(context);
   }
 

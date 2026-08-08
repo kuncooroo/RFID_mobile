@@ -157,6 +157,8 @@ class RegisterController extends Notifier<RegisterState> {
               password: password,
             ),
           );
+      _applyAuthenticatedSession(ref);
+      ref.invalidate(currentUserProvider);
       state = state.copyWith(status: AuthFormStatus.success);
       return true;
     } catch (error) {

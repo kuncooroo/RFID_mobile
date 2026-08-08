@@ -14,6 +14,18 @@ class LocalCheckoutRepository implements CheckoutRepository {
   Future<List<Address>> fetchAddresses() => _delegate.fetchAddresses();
 
   @override
+  Future<Address> createAddress(AddressInput input) =>
+      _delegate.createAddress(input);
+
+  @override
+  Future<Address> updateAddress(String addressId, AddressInput input) =>
+      _delegate.updateAddress(addressId, input);
+
+  @override
+  Future<void> deleteAddress(String addressId) =>
+      _delegate.deleteAddress(addressId);
+
+  @override
   Future<List<PaymentMethod>> fetchPaymentMethods() =>
       _delegate.fetchPaymentMethods();
 

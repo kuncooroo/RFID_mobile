@@ -12,11 +12,15 @@ class AddressCard extends StatelessWidget {
     required this.address,
     required this.isSelected,
     required this.onTap,
+    this.onEdit,
+    this.onDelete,
   });
 
   final Address address;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -43,26 +47,58 @@ class AddressCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(address.label, style: AppTextStyles.titleMedium),
-                    if (address.isDefault) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Default',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.primary,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              address.label,
+                              style: AppTextStyles.titleMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                          if (address.isDefault) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                                vertical: AppSpacing.xxs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySoft,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Default',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
+                    ),
+                    if (onEdit != null || onDelete != null)
+                      PopupMenuButton<String>(
+                        tooltip: 'Address actions',
+                        onSelected: (value) {
+                          if (value == 'edit') onEdit?.call();
+                          if (value == 'delete') onDelete?.call();
+                        },
+                        itemBuilder: (context) => [
+                          if (onEdit != null)
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Text('Edit'),
+                            ),
+                          if (onDelete != null)
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete'),
+                            ),
+                        ],
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xs),

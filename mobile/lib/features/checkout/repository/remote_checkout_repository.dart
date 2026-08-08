@@ -20,6 +20,31 @@ class RemoteCheckoutRepository implements CheckoutRepository {
   }
 
   @override
+  Future<Address> createAddress(AddressInput input) async {
+    final data = await _api.post<Map<String, dynamic>>(
+      ApiEndpoints.addresses,
+      data: input.toApiPayload(),
+      parser: _asMap,
+    );
+    return Address.fromJson(data);
+  }
+
+  @override
+  Future<Address> updateAddress(String addressId, AddressInput input) async {
+    final data = await _api.put<Map<String, dynamic>>(
+      ApiEndpoints.address(addressId),
+      data: input.toApiPayload(),
+      parser: _asMap,
+    );
+    return Address.fromJson(data);
+  }
+
+  @override
+  Future<void> deleteAddress(String addressId) async {
+    await _api.delete<dynamic>(ApiEndpoints.address(addressId));
+  }
+
+  @override
   Future<List<PaymentMethod>> fetchPaymentMethods() async {
     final list = await _api.get<List<Map<String, dynamic>>>(
       ApiEndpoints.paymentMethods,

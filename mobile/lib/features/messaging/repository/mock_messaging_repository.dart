@@ -70,6 +70,15 @@ class MockMessagingRepository implements MessagingRepository {
   }
 
   @override
+  Future<void> markConversationRead(String threadId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    final index = _conversations.indexWhere((c) => c.id == threadId);
+    if (index != -1) {
+      _conversations[index] = _conversations[index].copyWith(unreadCount: 0);
+    }
+  }
+
+  @override
   Future<Message> sendMessage({
     required String threadId,
     required String body,

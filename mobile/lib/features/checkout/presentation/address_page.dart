@@ -5,12 +5,15 @@ import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_state.dart';
 import '../../../shared/widgets/app_loading.dart';
+import '../models/address.dart';
 import '../navigation/checkout_navigation.dart';
 import '../providers/checkout_providers.dart';
 import '../state/checkout_state.dart';
 import '../widgets/address_card.dart';
+import '../widgets/address_form_sheet.dart';
 
 /// Shipping address selection (Figma 1:49).
 class AddressPage extends ConsumerStatefulWidget {
@@ -41,6 +44,41 @@ class _AddressPageState extends ConsumerState<AddressPage> {
     CheckoutNavigation.openPayment(context);
   }
 
+  Future<void> _openForm({Address? initial}) async {
+    await showAddressFormSheet(context, initial: initial);
+  }
+
+  Future<void> _confirmDelete(Address address) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete address?'),
+        content: Text('Remove ${address.label} from your saved addresses.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final ok = await ref
+        .read(checkoutControllerProvider.notifier)
+        .deleteAddress(address.id);
+    if (!mounted) return;
+    if (!ok) {
+      final error = ref.read(checkoutControllerProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error ?? 'Could not delete address')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(checkoutControllerProvider);
@@ -59,6 +97,13 @@ class _AddressPageState extends ConsumerState<AddressPage> {
         ),
         title: Text('Address', style: AppTextStyles.headlineSmall),
         centerTitle: false,
+        actions: [
+          IconButton(
+            tooltip: 'Add address',
+            icon: const Icon(Icons.add_rounded),
+            onPressed: () => _openForm(),
+          ),
+        ],
       ),
       body: _buildBody(state, controller),
       bottomNavigationBar: state.addresses.isEmpty
@@ -99,13 +144,12 @@ class _AddressPageState extends ConsumerState<AddressPage> {
     }
 
     if (state.addresses.isEmpty) {
-      return Center(
-        child: Text(
-          'No saved addresses yet.',
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+      return AppEmptyState(
+        title: 'No saved addresses yet',
+        message: 'Add a delivery address to continue checkout.',
+        icon: Icons.location_on_outlined,
+        actionLabel: 'Add Address',
+        onAction: () => _openForm(),
       );
     }
 
@@ -124,6 +168,8 @@ class _AddressPageState extends ConsumerState<AddressPage> {
           address: address,
           isSelected: state.selectedAddressId == address.id,
           onTap: () => controller.selectAddress(address.id),
+          onEdit: () => _openForm(initial: address),
+          onDelete: () => _confirmDelete(address),
         );
       },
     );

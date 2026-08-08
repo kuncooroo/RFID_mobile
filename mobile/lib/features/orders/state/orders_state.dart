@@ -86,11 +86,13 @@ class OrderTrackState {
   const OrderTrackState({
     this.status = OrderTrackStatus.initial,
     this.order,
+    this.isCancelling = false,
     this.errorMessage,
   });
 
   final OrderTrackStatus status;
   final Order? order;
+  final bool isCancelling;
   final String? errorMessage;
 
   bool get isLoading =>
@@ -101,6 +103,7 @@ class OrderTrackState {
   OrderTrackState copyWith({
     OrderTrackStatus? status,
     Order? order,
+    bool? isCancelling,
     String? errorMessage,
     bool clearError = false,
     bool clearOrder = false,
@@ -108,6 +111,7 @@ class OrderTrackState {
     return OrderTrackState(
       status: status ?? this.status,
       order: clearOrder ? null : (order ?? this.order),
+      isCancelling: isCancelling ?? this.isCancelling,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }

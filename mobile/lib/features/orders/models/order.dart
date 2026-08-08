@@ -46,6 +46,9 @@ class Order {
       status == OrderStatus.cancelled ||
       status == OrderStatus.refunded;
 
+  bool get canCancel =>
+      status == OrderStatus.pending || status == OrderStatus.paid;
+
   Order copyWith({
     String? id,
     String? orderNumber,

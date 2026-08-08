@@ -122,11 +122,15 @@ class MessageDetailController extends Notifier<MessageDetailState> {
       conversation = messaging.conversationById(threadId) ?? conversation;
       state = state.copyWith(
         status: MessageDetailStatus.ready,
-        conversation: conversation,
+        conversation: conversation?.copyWith(unreadCount: 0) ?? conversation,
         messages: messages,
       );
-      // Refresh list so unread badges clear without blocking chat UI.
-      unawaited(messaging.refresh());
+      unawaited(
+        ref
+            .read(messagingRepositoryProvider)
+            .markConversationRead(threadId)
+            .then((_) => messaging.refresh()),
+      );
     } catch (error) {
       state = state.copyWith(
         status: MessageDetailStatus.failure,

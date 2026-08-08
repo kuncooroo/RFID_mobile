@@ -11,6 +11,7 @@ class CheckoutState {
     this.paymentMethods = const [],
     this.selectedPaymentId,
     this.placingOrder = false,
+    this.savingAddress = false,
     this.placedOrderId,
     this.errorMessage,
   });
@@ -23,6 +24,7 @@ class CheckoutState {
   final List<PaymentMethod> paymentMethods;
   final String? selectedPaymentId;
   final bool placingOrder;
+  final bool savingAddress;
   final String? placedOrderId;
   final String? errorMessage;
 
@@ -64,18 +66,23 @@ class CheckoutState {
     List<PaymentMethod>? paymentMethods,
     String? selectedPaymentId,
     bool? placingOrder,
+    bool? savingAddress,
     String? placedOrderId,
     String? errorMessage,
     bool clearError = false,
     bool clearPlacedOrderId = false,
+    bool clearSelectedAddress = false,
   }) {
     return CheckoutState(
       status: status ?? this.status,
       addresses: addresses ?? this.addresses,
-      selectedAddressId: selectedAddressId ?? this.selectedAddressId,
+      selectedAddressId: clearSelectedAddress
+          ? null
+          : (selectedAddressId ?? this.selectedAddressId),
       paymentMethods: paymentMethods ?? this.paymentMethods,
       selectedPaymentId: selectedPaymentId ?? this.selectedPaymentId,
       placingOrder: placingOrder ?? this.placingOrder,
+      savingAddress: savingAddress ?? this.savingAddress,
       placedOrderId: clearPlacedOrderId
           ? null
           : (placedOrderId ?? this.placedOrderId),

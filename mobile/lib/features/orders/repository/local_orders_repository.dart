@@ -27,4 +27,7 @@ class LocalOrdersRepository implements OrdersRepository {
 
   @override
   Future<Order> createOrder(Order order) => _delegate.createOrder(order);
+
+  @override
+  Future<Order> cancelOrder(String orderId) => _delegate.cancelOrder(orderId);
 }

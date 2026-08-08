@@ -1,4 +1,5 @@
 import '../models/product.dart';
+import '../models/review.dart';
 
 enum ProductDetailStatus { initial, loading, ready, failure }
 
@@ -6,6 +7,7 @@ class ProductDetailState {
   const ProductDetailState({
     this.status = ProductDetailStatus.initial,
     this.product,
+    this.reviews = const [],
     this.selectedColorId,
     this.selectedSize,
     this.quantity = 1,
@@ -20,6 +22,7 @@ class ProductDetailState {
 
   final ProductDetailStatus status;
   final Product? product;
+  final List<Review> reviews;
   final String? selectedColorId;
   final String? selectedSize;
   final int quantity;
@@ -40,6 +43,7 @@ class ProductDetailState {
   ProductDetailState copyWith({
     ProductDetailStatus? status,
     Product? product,
+    List<Review>? reviews,
     String? selectedColorId,
     String? selectedSize,
     int? quantity,
@@ -56,6 +60,7 @@ class ProductDetailState {
     return ProductDetailState(
       status: status ?? this.status,
       product: clearProduct ? null : (product ?? this.product),
+      reviews: reviews ?? this.reviews,
       selectedColorId:
           clearColor ? null : (selectedColorId ?? this.selectedColorId),
       selectedSize: clearSize ? null : (selectedSize ?? this.selectedSize),
