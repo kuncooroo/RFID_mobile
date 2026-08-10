@@ -27,72 +27,71 @@ final rfidScanControllerProvider =
 );
 
 class RfidScanController extends Notifier<RfidScanState> {
-  Timer? _progressTimer;
-
   @override
   RfidScanState build() {
-    ref.onDispose(() => _progressTimer?.cancel());
     return const RfidScanState();
   }
 
   void reset() {
-    _progressTimer?.cancel();
     state = const RfidScanState();
   }
 
-  /// Step 1 → Step 2: begin face scan + RFID member resolve in parallel.
+  /// Step 1 → Step 2: open camera viewfinder and wait for RFID tap.
   Future<void> getStarted() async {
-    _progressTimer?.cancel();
     state = state.copyWith(
       step: FaceVerifyStep.holdStill,
       progress: 0,
+      isSubmitting: false,
       clearError: true,
+      clearRfid: true,
     );
-
-    // Resolve member id in the background (NFC / RFID simulation).
     unawaited(_resolveMemberId());
-
-    // Animate hold-still progress, then submit verification.
-    const tick = Duration(milliseconds: 50);
-    const total = Duration(milliseconds: 2800);
-    final steps = total.inMilliseconds / tick.inMilliseconds;
-    var i = 0;
-
-    _progressTimer = Timer.periodic(tick, (timer) async {
-      i++;
-      final next = (i / steps).clamp(0.0, 1.0);
-      state = state.copyWith(progress: next);
-      if (next < 1) return;
-
-      timer.cancel();
-      await _finishVerification();
-    });
   }
 
   Future<void> _resolveMemberId() async {
     try {
-      final memberId = await ref.read(rfidRepositoryProvider).waitForCardTap(
-            timeout: const Duration(seconds: 3),
+      final uid = await ref.read(rfidRepositoryProvider).waitForCardTap(
+            timeout: const Duration(seconds: 8),
           );
       if (state.step != FaceVerifyStep.holdStill) return;
-      state = state.copyWith(memberId: memberId);
+      state = state.copyWith(
+        rfidUid: uid,
+        memberId: uid,
+        progress: 0.45,
+      );
     } catch (_) {
-      // Keep scanning; member id falls back at submit time.
+      if (state.step != FaceVerifyStep.holdStill) return;
+      state = state.copyWith(
+        errorMessage: 'RFID card was not detected. Please try again.',
+      );
     }
   }
 
-  Future<void> _finishVerification() async {
+  /// Capture face snapshot and submit verification (Capture & Save).
+  Future<void> captureAndSave() async {
+    if (!state.canCapture) return;
+
+    state = state.copyWith(
+      isSubmitting: true,
+      progress: 0.7,
+      clearError: true,
+    );
+
     try {
       final repo = ref.read(rfidRepositoryProvider);
-      final memberId = state.memberId;
+      final memberId = state.memberId ?? state.rfidUid;
       if (memberId == null || memberId.isEmpty) {
         state = state.copyWith(
           step: FaceVerifyStep.failure,
+          isSubmitting: false,
           errorMessage: 'RFID card was not detected. Please try again.',
         );
         return;
       }
+
       final imagePath = await repo.captureFaceSnapshot();
+      state = state.copyWith(progress: 0.9, capturedImagePath: imagePath);
+
       final result = await repo.submitVerification(
         RfidVerificationRequest(
           memberId: memberId,
@@ -100,18 +99,22 @@ class RfidScanController extends Notifier<RfidScanState> {
           capturedImagePath: imagePath,
         ),
       );
+
       if (!result.gateOpened) {
         state = state.copyWith(
           step: FaceVerifyStep.failure,
+          isSubmitting: false,
           errorMessage: result.message,
           memberId: memberId,
           capturedImagePath: imagePath,
         );
         return;
       }
+
       state = state.copyWith(
         step: FaceVerifyStep.success,
         progress: 1,
+        isSubmitting: false,
         memberId: memberId,
         capturedImagePath: imagePath,
         clearError: true,
@@ -119,6 +122,7 @@ class RfidScanController extends Notifier<RfidScanState> {
     } catch (error) {
       state = state.copyWith(
         step: FaceVerifyStep.failure,
+        isSubmitting: false,
         errorMessage: error.toString(),
       );
     }

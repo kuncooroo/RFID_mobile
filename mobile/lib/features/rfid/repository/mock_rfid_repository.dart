@@ -4,8 +4,8 @@ import 'rfid_repository.dart';
 /// Local / demo RFID repository — simulates NFC tap, capture, and API save.
 class MockRfidRepository implements RfidRepository {
   MockRfidRepository({
-    this.demoMemberId = 'MEM-1001',
-    this.detectDelay = const Duration(milliseconds: 900),
+    this.demoMemberId = 'RFID-DEMO-001',
+    this.detectDelay = const Duration(milliseconds: 1400),
     this.verifyDelay = const Duration(milliseconds: 500),
   });
 

@@ -41,9 +41,12 @@ class _RfidScanScreenState extends ConsumerState<RfidScanScreen> {
         ),
       FaceVerifyStep.holdStill => FaceHoldStillView(
           progress: state.progress,
+          rfidUid: state.rfidUid,
+          isSubmitting: state.isSubmitting,
           onBack: () {
             controller.reset();
           },
+          onCapture: controller.captureAndSave,
         ),
       FaceVerifyStep.success => FaceSuccessView(
           memberId: state.memberId,
