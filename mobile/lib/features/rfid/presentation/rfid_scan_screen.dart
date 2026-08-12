@@ -43,10 +43,12 @@ class _RfidScanScreenState extends ConsumerState<RfidScanScreen> {
           progress: state.progress,
           rfidUid: state.rfidUid,
           isSubmitting: state.isSubmitting,
-          onBack: () {
-            controller.reset();
-          },
-          onCapture: controller.captureAndSave,
+          onBack: controller.reset,
+          onRfidCaptured: controller.setRfidUid,
+          onCapture: (imagePath, rfidUid) => controller.captureAndSave(
+            imagePath: imagePath,
+            rfidUid: rfidUid,
+          ),
         ),
       FaceVerifyStep.success => FaceSuccessView(
           memberId: state.memberId,
@@ -58,9 +60,7 @@ class _RfidScanScreenState extends ConsumerState<RfidScanScreen> {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () {
-                controller.reset();
-              },
+              onPressed: controller.reset,
             ),
           ),
           body: Center(

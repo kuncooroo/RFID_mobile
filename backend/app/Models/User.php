@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -20,6 +21,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
+        'role',
         'avatar_path',
         'onboarding_completed_at',
     ];
@@ -35,7 +37,28 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
             'password' => 'hashed',
+            'role' => UserRole::class,
         ];
+    }
+
+    public function isVisitor(): bool
+    {
+        return ($this->role ?? UserRole::Visitor) === UserRole::Visitor;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
+
+    public function isSuperadmin(): bool
+    {
+        return $this->role === UserRole::Superadmin;
+    }
+
+    public function isStaff(): bool
+    {
+        return ($this->role ?? UserRole::Visitor)->isStaff();
     }
 
     public function member(): HasOne
@@ -86,5 +109,15 @@ class User extends Authenticatable
     public function rfidMember(): HasOne
     {
         return $this->hasOne(RfidMember::class);
+    }
+
+    public function rfidVerifications(): HasMany
+    {
+        return $this->hasMany(RfidVerification::class);
+    }
+
+    public function adminActivityLogs(): HasMany
+    {
+        return $this->hasMany(AdminActivityLog::class);
     }
 }

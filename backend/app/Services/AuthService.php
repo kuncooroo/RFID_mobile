@@ -33,6 +33,7 @@ class AuthService
                 'email' => $data['email'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'password' => $data['password'],
+                'role' => \App\Enums\UserRole::Visitor,
             ]);
 
             Member::query()->create([

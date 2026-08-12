@@ -1,7 +1,10 @@
 import '../models/rfid_verification.dart';
 import 'rfid_repository.dart';
 
-/// Local / demo RFID repository — simulates NFC tap, capture, and API save.
+/// Local / demo RFID repository — used only when USE_MOCK_RFID=true.
+///
+/// UI RFID capture now uses USB keyboard wedge (KeyboardListener), not
+/// [waitForCardTap]. This mock remains for isolated repository tests.
 class MockRfidRepository implements RfidRepository {
   MockRfidRepository({
     this.demoMemberId = 'RFID-DEMO-001',

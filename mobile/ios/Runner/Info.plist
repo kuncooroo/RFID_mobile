@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Kutuku needs camera access to capture your face during RFID member verification.</string>
 </dict>
 </plist>

@@ -41,13 +41,17 @@ class RfidScanState {
     String? errorMessage,
     bool clearError = false,
     bool clearRfid = false,
+    bool clearMember = false,
+    bool clearCapturedImage = false,
   }) {
     return RfidScanState(
       step: step ?? this.step,
       progress: progress ?? this.progress,
-      memberId: memberId ?? this.memberId,
+      memberId: clearMember ? null : (memberId ?? this.memberId),
       rfidUid: clearRfid ? null : (rfidUid ?? this.rfidUid),
-      capturedImagePath: capturedImagePath ?? this.capturedImagePath,
+      capturedImagePath: clearCapturedImage
+          ? null
+          : (capturedImagePath ?? this.capturedImagePath),
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );

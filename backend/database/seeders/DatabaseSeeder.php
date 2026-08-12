@@ -29,11 +29,18 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
+        $this->call(AdminSeeder::class);
+
+        if (User::query()->where('email', 'demo@kutuku.test')->exists()) {
+            return;
+        }
+
         $user = User::query()->create([
             'name' => 'Demo User',
             'email' => 'demo@kutuku.test',
             'phone' => '+10000000001',
             'password' => Hash::make('password'),
+            'role' => 'visitor',
             'onboarding_completed_at' => now(),
         ]);
 

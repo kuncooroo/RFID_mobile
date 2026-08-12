@@ -1,13 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../src/network/api_client.dart';
 import '../models/rfid_verification.dart';
 import '../repository/mock_rfid_repository.dart';
+import '../repository/remote_rfid_repository.dart';
 import '../repository/rfid_repository.dart';
 import '../state/rfid_scan_state.dart';
-import '../../../src/network/api_client.dart';
-import '../repository/remote_rfid_repository.dart';
 
 const bool kUseMockRfidRepository = bool.fromEnvironment(
   'USE_MOCK_RFID',
@@ -36,76 +34,66 @@ class RfidScanController extends Notifier<RfidScanState> {
     state = const RfidScanState();
   }
 
-  /// Step 1 → Step 2: open camera viewfinder and wait for RFID tap.
-  Future<void> getStarted() async {
+  /// Step 1 → Step 2: open camera viewfinder and wait for a real RFID tap.
+  void getStarted() {
     state = state.copyWith(
       step: FaceVerifyStep.holdStill,
       progress: 0,
       isSubmitting: false,
       clearError: true,
       clearRfid: true,
+      clearMember: true,
+      clearCapturedImage: true,
     );
-    unawaited(_resolveMemberId());
   }
 
-  Future<void> _resolveMemberId() async {
-    try {
-      final uid = await ref.read(rfidRepositoryProvider).waitForCardTap(
-            timeout: const Duration(seconds: 8),
-          );
-      if (state.step != FaceVerifyStep.holdStill) return;
-      state = state.copyWith(
-        rfidUid: uid,
-        memberId: uid,
-        progress: 0.45,
-      );
-    } catch (_) {
-      if (state.step != FaceVerifyStep.holdStill) return;
-      state = state.copyWith(
-        errorMessage: 'RFID card was not detected. Please try again.',
-      );
-    }
+  /// Called only after USB RFID reader finishes a scan (Enter key).
+  void setRfidUid(String uid) {
+    final cleaned = uid.trim();
+    if (cleaned.isEmpty || state.step != FaceVerifyStep.holdStill) return;
+
+    state = state.copyWith(
+      rfidUid: cleaned,
+      memberId: cleaned,
+      progress: 0.45,
+      clearError: true,
+    );
   }
 
-  /// Capture face snapshot and submit verification (Capture & Save).
-  Future<void> captureAndSave() async {
-    if (!state.canCapture) return;
+  /// Capture face snapshot path + submit verification (Capture & Save).
+  Future<void> captureAndSave({
+    required String imagePath,
+    required String rfidUid,
+  }) async {
+    if (state.step != FaceVerifyStep.holdStill || state.isSubmitting) return;
+
+    final cleanedUid = rfidUid.trim();
+    if (cleanedUid.isEmpty || imagePath.trim().isEmpty) return;
 
     state = state.copyWith(
       isSubmitting: true,
       progress: 0.7,
+      rfidUid: cleanedUid,
+      memberId: cleanedUid,
+      capturedImagePath: imagePath,
       clearError: true,
     );
 
     try {
-      final repo = ref.read(rfidRepositoryProvider);
-      final memberId = state.memberId ?? state.rfidUid;
-      if (memberId == null || memberId.isEmpty) {
-        state = state.copyWith(
-          step: FaceVerifyStep.failure,
-          isSubmitting: false,
-          errorMessage: 'RFID card was not detected. Please try again.',
-        );
-        return;
-      }
-
-      final imagePath = await repo.captureFaceSnapshot();
-      state = state.copyWith(progress: 0.9, capturedImagePath: imagePath);
-
-      final result = await repo.submitVerification(
-        RfidVerificationRequest(
-          memberId: memberId,
-          timestamp: DateTime.now(),
-          capturedImagePath: imagePath,
-        ),
-      );
+      final result = await ref.read(rfidRepositoryProvider).submitVerification(
+            RfidVerificationRequest(
+              memberId: cleanedUid,
+              timestamp: DateTime.now(),
+              capturedImagePath: imagePath,
+            ),
+          );
 
       if (!result.gateOpened) {
         state = state.copyWith(
           step: FaceVerifyStep.failure,
           isSubmitting: false,
           errorMessage: result.message,
-          memberId: memberId,
+          memberId: cleanedUid,
           capturedImagePath: imagePath,
         );
         return;
@@ -115,7 +103,7 @@ class RfidScanController extends Notifier<RfidScanState> {
         step: FaceVerifyStep.success,
         progress: 1,
         isSubmitting: false,
-        memberId: memberId,
+        memberId: cleanedUid,
         capturedImagePath: imagePath,
         clearError: true,
       );
