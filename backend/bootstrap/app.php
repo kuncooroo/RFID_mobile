@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'staff' => \App\Http\Middleware\EnsureStaffUser::class,
+            'kiosk.key' => \App\Http\Middleware\EnsureKioskApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

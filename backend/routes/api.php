@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Checkout\CheckoutController;
 use App\Http\Controllers\Api\Checkout\PaymentMethodController;
 use App\Http\Controllers\Api\Favorite\FavoriteController;
 use App\Http\Controllers\Api\Home\HomeController;
+use App\Http\Controllers\Api\Kiosk\KioskController;
 use App\Http\Controllers\Api\Messaging\ConversationController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\Order\OrderController;
@@ -34,6 +35,18 @@ Route::prefix('v1')->group(function () {
     Route::get('/stores/{store}', [StoreController::class, 'show']);
     Route::get('/stores/{store}/products', [StoreController::class, 'products']);
     Route::get('/languages', [SettingsController::class, 'languages']);
+
+    // Public kiosk endpoints (self-service machines). Optional X-Kiosk-Key.
+    Route::prefix('kiosk')->middleware(['kiosk.key', 'throttle:60,1'])->group(function () {
+        Route::post('/verify', [KioskController::class, 'verify']);
+        Route::post('/upload-photo', [KioskController::class, 'uploadPhoto']);
+    });
+
+    // Aliases matching the kiosk integration contract.
+    Route::middleware(['kiosk.key', 'throttle:60,1'])->group(function () {
+        Route::post('/verify-kiosk', [KioskController::class, 'verify']);
+        Route::post('/upload-photo', [KioskController::class, 'uploadPhoto']);
+    });
 
     // Refresh tokens may only call this endpoint.
     Route::middleware(['auth:sanctum', 'ability:refresh', 'throttle:20,1'])->group(function () {

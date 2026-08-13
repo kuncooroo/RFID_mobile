@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'kiosk' => [
+        'api_key' => env('KIOSK_API_KEY'),
+    ],
+
 ];
