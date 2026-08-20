@@ -2,7 +2,7 @@
 
 @section('title', 'Products')
 @section('heading', 'Products')
-@section('subheading', 'Store catalog shown in the Kutuku mobile app. CRUD forms coming next.')
+@section('subheading', 'Store catalog shown in the Kutuku mobile app.')
 
 @section('content')
 <div class="toolbar">
@@ -10,19 +10,19 @@
         <input class="search" type="search" name="q" value="{{ $q }}" placeholder="Search name, brand, slug…">
         <button class="btn secondary" type="submit">Search</button>
     </form>
-    <button class="btn" type="button" disabled title="Coming soon">Add product</button>
+    <a class="btn" href="{{ route('admin.products.create') }}">Add product</a>
 </div>
 
 <div class="panel">
     <div class="panel-header">
         <h2>Catalog</h2>
-        <span class="muted">Skeleton — read-only list</span>
+        <span class="muted">{{ $products->total() }} products</span>
     </div>
     <div class="table-wrap">
         <table>
             <thead>
             <tr>
-                <th>ID</th>
+                <th>No</th>
                 <th>Name</th>
                 <th>Category</th>
                 <th>Store</th>
@@ -35,7 +35,7 @@
             <tbody>
             @forelse($products as $product)
                 <tr>
-                    <td>{{ $product->id }}</td>
+                    <td>{{ ($products->firstItem() ?? 0) + $loop->index }}</td>
                     <td>
                         <strong>{{ $product->name }}</strong>
                         <div class="muted">{{ $product->brand ?? '—' }}</div>
@@ -55,11 +55,16 @@
                         @endif
                     </td>
                     <td class="actions">
-                        <button class="btn secondary sm" type="button" disabled title="Coming soon">Edit</button>
+                        <a class="btn secondary sm" href="{{ route('admin.products.edit', $product) }}">Edit</a>
+                        <form method="POST" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('Delete this product?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn danger sm" type="submit">Delete</button>
+                        </form>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8">No products found. Seed the database or add products next.</td></tr>
+                <tr><td colspan="8">No products found.</td></tr>
             @endforelse
             </tbody>
         </table>

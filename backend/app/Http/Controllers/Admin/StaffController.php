@@ -13,14 +13,24 @@ use Illuminate\View\View;
 
 class StaffController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $staff = Admin::query()
-            ->orderByRaw("FIELD(role, 'superadmin', 'admin')")
-            ->orderBy('name')
-            ->paginate(20);
+        $q = trim((string) $request->query('q', ''));
 
-        return view('admin.staff.index', compact('staff'));
+        $staff = Admin::query()
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%")
+                        ->orWhere('phone', 'like', "%{$q}%");
+                });
+            })
+            ->orderByRaw("FIELD(role, 'superadmin', 'admin')")
+            ->orderBy('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.staff.index', compact('staff', 'q'));
     }
 
     public function create(): View
@@ -97,7 +107,7 @@ class StaffController extends Controller
         }
 
         $label = "#{$staff->id} {$staff->name}";
-        $staff->delete();
+        $staff->forceDelete();
 
         AdminActivityLogger::log('staff.delete', "Deleted staff {$label}");
 

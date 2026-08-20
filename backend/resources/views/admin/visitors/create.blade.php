@@ -2,32 +2,17 @@
 
 @section('title', 'Add visitor')
 @section('heading', 'Add visitor')
-@section('subheading', 'Create a mobile-app visitor account.')
+@section('subheading', 'Buat akun visitor, bind RFID, dan upload face enrollment.')
 
 @section('content')
-<div class="panel">
-    <form method="POST" action="{{ route('admin.visitors.store') }}" class="form-grid">
-        @csrf
-        <label>
-            Name
-            <input type="text" name="name" value="{{ old('name') }}" required>
-        </label>
-        <label>
-            Email
-            <input type="email" name="email" value="{{ old('email') }}">
-        </label>
-        <label>
-            Phone
-            <input type="text" name="phone" value="{{ old('phone') }}">
-        </label>
-        <label>
-            Password
-            <input type="password" name="password" required>
-        </label>
-        <div class="full actions">
+<form method="POST" action="{{ route('admin.visitors.store') }}" enctype="multipart/form-data" class="visitor-form">
+    @csrf
+    <div class="panel visitor-form-panel">
+        @include('admin.visitors._form')
+        <div class="form-actions">
             <button class="btn" type="submit">Create visitor</button>
             <a class="btn secondary" href="{{ route('admin.visitors.index') }}">Cancel</a>
         </div>
-    </form>
-</div>
+    </div>
+</form>
 @endsection

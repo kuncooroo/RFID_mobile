@@ -2,7 +2,7 @@
 
 @section('title', 'Orders')
 @section('heading', 'Orders')
-@section('subheading', 'Orders placed from the Kutuku mobile app. Status tools coming next.')
+@section('subheading', 'Orders placed from the Kutuku mobile app.')
 
 @section('content')
 <div class="toolbar">
@@ -10,7 +10,7 @@
         <input class="search" type="search" name="q" value="{{ $q }}" placeholder="Search order #, customer…">
         <select name="status" class="search" style="max-width: 180px;">
             <option value="">All statuses</option>
-            @foreach(['pending','paid','processing','shipped','delivered','cancelled','refunded'] as $s)
+            @foreach($statuses as $s)
                 <option value="{{ $s }}" @selected($status === $s)>{{ ucfirst($s) }}</option>
             @endforeach
         </select>
@@ -21,12 +21,13 @@
 <div class="panel">
     <div class="panel-header">
         <h2>Order list</h2>
-        <span class="muted">Skeleton — read-only list</span>
+        <span class="muted">{{ $orders->total() }} orders</span>
     </div>
     <div class="table-wrap">
         <table>
             <thead>
             <tr>
+                <th>No</th>
                 <th>Order</th>
                 <th>Customer</th>
                 <th>Status</th>
@@ -38,6 +39,7 @@
             <tbody>
             @forelse($orders as $order)
                 <tr>
+                    <td>{{ ($orders->firstItem() ?? 0) + $loop->index }}</td>
                     <td><code>{{ $order->order_number }}</code></td>
                     <td>
                         <strong>{{ $order->user?->name ?? '—' }}</strong>
@@ -61,11 +63,11 @@
                     </td>
                     <td>{{ optional($order->placed_at)->format('Y-m-d H:i') ?? '—' }}</td>
                     <td class="actions">
-                        <button class="btn secondary sm" type="button" disabled title="Coming soon">View</button>
+                        <a class="btn secondary sm" href="{{ route('admin.orders.show', $order) }}">View</a>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6">No orders yet. Orders from the mobile app will appear here.</td></tr>
+                <tr><td colspan="7">No orders yet.</td></tr>
             @endforelse
             </tbody>
         </table>

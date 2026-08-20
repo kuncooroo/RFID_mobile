@@ -115,4 +115,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(RfidVerification::class);
     }
+
+    public function faceEnrollments(): HasMany
+    {
+        return $this->hasMany(UserFaceEnrollment::class);
+    }
 }

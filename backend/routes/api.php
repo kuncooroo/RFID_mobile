@@ -42,6 +42,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/rfid/verify', [KioskController::class, 'lookupRfid']);
         Route::post('/verify', [KioskController::class, 'verify']);
         Route::post('/register', [KioskController::class, 'register'])->middleware('throttle:20,1');
+        Route::post('/face-enrollment', [KioskController::class, 'enrollFace'])->middleware('throttle:20,1');
+        Route::post('/visit', [KioskController::class, 'visit']);
         Route::post('/upload-photo', [KioskController::class, 'uploadPhoto']);
         Route::post('/presence', [KioskController::class, 'recordPresence']);
         Route::post('/check-in', [KioskController::class, 'checkIn']);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Kiosk;
 
 use App\Http\Controllers\Controller;
+use App\Services\KioskFaceEnrollmentService;
 use App\Services\KioskPresenceService;
 use App\Services\KioskService;
 use App\Support\ApiResponse;
@@ -15,6 +16,7 @@ class KioskController extends Controller
     public function __construct(
         private readonly KioskService $kiosk,
         private readonly KioskPresenceService $presence,
+        private readonly KioskFaceEnrollmentService $faceEnrollment,
     ) {
     }
 
@@ -72,7 +74,7 @@ class KioskController extends Controller
 
         $result = $this->kiosk->verifyCode($code);
 
-        return ApiResponse::success($result, 'Kartu valid. Siap mengambil foto.');
+        return ApiResponse::success($result, 'Kartu valid.');
     }
 
     /**
@@ -102,8 +104,59 @@ class KioskController extends Controller
     }
 
     /**
+     * POST /api/v1/kiosk/face-enrollment
+     * multipart: rfid_uid, front, right, left
+     */
+    public function enrollFace(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'rfid_uid' => ['required', 'string', 'max:255'],
+            'front' => ['required', 'file', 'image', 'max:10240'],
+            'right' => ['required', 'file', 'image', 'max:10240'],
+            'left' => ['required', 'file', 'image', 'max:10240'],
+        ]);
+
+        $result = $this->faceEnrollment->enroll($data['rfid_uid'], [
+            'front' => $request->file('front'),
+            'right' => $request->file('right'),
+            'left' => $request->file('left'),
+        ]);
+
+        return ApiResponse::created($result, 'Face enrollment berhasil.');
+    }
+
+    /**
+     * POST /api/v1/kiosk/visit
+     * Body: { "rfid_uid": "...", "location_id"?: int, "device_id"?: string }
+     * RFID visit without face capture.
+     */
+    public function visit(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'rfid_uid' => ['required', 'string', 'max:255'],
+            'location_id' => ['nullable', 'integer', 'exists:kiosk_locations,id'],
+            'device_id' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $result = $this->presence->recordVisit(
+            $data['rfid_uid'],
+            isset($data['location_id']) ? (int) $data['location_id'] : null,
+            $data['device_id'] ?? null,
+        );
+
+        $message = match ($result['result_code'] ?? '') {
+            'ALREADY_CHECKED_IN' => 'Sudah check-in baru-baru ini.',
+            'ALREADY_CHECKED_IN_TODAY' => 'Kunjungan tercatat. Poin harian sudah diambil.',
+            default => 'Kunjungan tercatat.',
+        };
+
+        return ApiResponse::success($result, $message);
+    }
+
+    /**
      * POST /api/v1/kiosk/upload-photo
      * multipart: photo (jpg), code|rfid_uid, optional user_id
+     * @deprecated Prefer face-enrollment for identity photos.
      */
     public function uploadPhoto(Request $request): JsonResponse
     {

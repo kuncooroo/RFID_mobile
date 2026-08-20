@@ -24,6 +24,7 @@
         <table>
             <thead>
             <tr>
+                <th>No</th>
                 <th>Name</th>
                 <th>Contact</th>
                 <th>Member code</th>
@@ -35,6 +36,7 @@
             <tbody>
             @forelse($visitors as $visitor)
                 <tr>
+                    <td>{{ ($visitors->firstItem() ?? 0) + $loop->index }}</td>
                     <td>
                         <strong>{{ $visitor->name }}</strong>
                         @if($visitor->member)
@@ -62,7 +64,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6">No visitors yet.</td></tr>
+                <tr><td colspan="7">No visitors yet.</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -79,6 +81,7 @@
         <table>
             <thead>
             <tr>
+                <th>No</th>
                 <th>Time</th>
                 <th>Visitor</th>
                 <th>RFID UID</th>
@@ -89,6 +92,7 @@
             <tbody>
             @forelse($recentScans as $scan)
                 <tr>
+                    <td>{{ $loop->iteration }}</td>
                     <td>{{ $scan->created_at?->format('Y-m-d H:i') }}</td>
                     <td>{{ $scan->user?->name ?? '—' }}</td>
                     <td><code>{{ $scan->rfidMember?->rfid_uid ?? '—' }}</code></td>
@@ -102,7 +106,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5">No scans yet.</td></tr>
+                <tr><td colspan="6">No scans yet.</td></tr>
             @endforelse
             </tbody>
         </table>

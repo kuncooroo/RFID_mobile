@@ -30,12 +30,12 @@ class DashboardController extends Controller
         $visitors = User::query()
             ->where('role', UserRole::Visitor)
             ->with(['rfidMember', 'member'])
-            ->latest()
+            ->orderBy('id')
             ->paginate(12);
 
         $recentScans = RfidVerification::query()
             ->with(['user', 'rfidMember'])
-            ->latest()
+            ->orderBy('id')
             ->limit(8)
             ->get();
 

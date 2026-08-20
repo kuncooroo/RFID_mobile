@@ -6,7 +6,10 @@
 
 @section('content')
 <div class="toolbar">
-    <div></div>
+    <form method="GET" action="{{ route('admin.staff.index') }}">
+        <input class="search" type="search" name="q" value="{{ $q ?? '' }}" placeholder="Search name, email, phone…">
+        <button class="btn secondary" type="submit">Search</button>
+    </form>
     <a class="btn" href="{{ route('admin.staff.create') }}">Add staff</a>
 </div>
 
@@ -15,7 +18,7 @@
         <table>
             <thead>
             <tr>
-                <th>ID</th>
+                <th>No</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -23,9 +26,9 @@
             </tr>
             </thead>
             <tbody>
-            @foreach($staff as $user)
+            @forelse($staff as $user)
                 <tr>
-                    <td>{{ $user->id }}</td>
+                    <td>{{ ($staff->firstItem() ?? 0) + $loop->index }}</td>
                     <td><strong>{{ $user->name }}</strong></td>
                     <td>{{ $user->email }}</td>
                     <td><span class="badge neutral">{{ $user->role?->label() }}</span></td>
@@ -40,7 +43,9 @@
                         @endif
                     </td>
                 </tr>
-            @endforeach
+            @empty
+                <tr><td colspan="5">No staff accounts found.</td></tr>
+            @endforelse
             </tbody>
         </table>
     </div>

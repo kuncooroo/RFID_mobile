@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\RfidMember;
 use App\Models\RfidVerification;
 use App\Models\User;
+use App\Models\UserFaceEnrollment;
 use App\Models\UserSetting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -265,6 +266,14 @@ class KioskService
             default => 'SERVER_ERROR',
         };
 
+        $faceEnrolled = false;
+        if (is_array($user) && isset($user['user_id'])) {
+            $faceEnrolled = UserFaceEnrollment::query()
+                ->where('user_id', (int) $user['user_id'])
+                ->whereIn('pose', UserFaceEnrollment::poses())
+                ->count() >= count(UserFaceEnrollment::poses());
+        }
+
         return [
             'status' => $status,
             'result_code' => $resultCode,
@@ -274,6 +283,8 @@ class KioskService
             'card_status' => $cardStatus,
             'user' => $user,
             'rfid_member_id' => $rfidMemberId,
+            'face_enrolled' => $faceEnrolled,
+            'needs_face_enrollment' => $status === 'registered' && ! $faceEnrolled,
         ];
     }
 
