@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AdminActivityLog extends Model
 {
     protected $fillable = [
-        'user_id',
+        'admin_id',
         'action',
         'subject_type',
         'subject_id',
@@ -16,8 +16,14 @@ class AdminActivityLog extends Model
         'ip_address',
     ];
 
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class);
+    }
+
+    /** @deprecated Use admin() — kept for older view references. */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Admin::class, 'admin_id');
     }
 }

@@ -11,7 +11,7 @@ class EnsureStaffUser
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
+        $user = $request->user('admin') ?? $request->user();
 
         if ($user === null || ! $user->isStaff()) {
             return redirect()->route('admin.login');

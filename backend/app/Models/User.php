@@ -115,9 +115,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(RfidVerification::class);
     }
-
-    public function adminActivityLogs(): HasMany
-    {
-        return $this->hasMany(AdminActivityLog::class);
-    }
 }

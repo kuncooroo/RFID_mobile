@@ -1,15 +1,27 @@
-# Kutuku Scan Kiosk (self-service receiver)
+# Kutuku Scan Kiosk (self-service)
 
-Aplikasi kios lapangan terpisah dari `mobile/` (user app).  
-**Tidak mengubah** Flutter user app.
+Aplikasi kios lapangan terpisah dari `mobile/` (user app).
 
 ## Flow
 
-1. **Idle** — dengarkan USB RFID (keyboard wedge) + scan QR via kamera  
-2. **Verify** — `POST /api/v1/kiosk/verify`  
-3. **Countdown 3-2-1** — live webcam + capture  
-4. **Upload** — `POST /api/v1/kiosk/upload-photo` (multipart)  
-5. Kembali ke Idle
+```text
+Splash (cek backend)
+→ Idle (tap RFID / QR)
+→ Lookup POST /api/v1/kiosk/rfid/verify
+   ├─ Terdaftar → info member → foto (opsional) → sukses
+   └─ Belum terdaftar → Register → foto → konfirmasi → Save
+      POST /api/v1/kiosk/register + upload-photo
+→ Idle
+```
+
+## API
+
+| Method | Path | Fungsi |
+|--------|------|--------|
+| GET | `/kiosk/health` | Cek backend |
+| POST | `/kiosk/rfid/verify` | `{ "rfid_uid" }` status kartu |
+| POST | `/kiosk/register` | Daftar visitor + bind RFID |
+| POST | `/kiosk/upload-photo` | Foto ke galeri |
 
 ## Run
 
@@ -17,20 +29,11 @@ Aplikasi kios lapangan terpisah dari `mobile/` (user app).
 cd kiosk
 flutter pub get
 
-# Android device / emulator (ganti IP PC)
+# Android (ganti IP PC)
 flutter run -d <device> --dart-define=API_BASE_URL=http://192.168.x.x:8000/api/v1
 
-# Chrome (PC kiosk + USB RFID)
+# Chrome + USB RFID reader
 flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
-Optional API key (jika `KIOSK_API_KEY` di-set di backend `.env`):
-
-```bash
---dart-define=KIOSK_API_KEY=your-secret
-```
-
-## QR payload yang diterima
-
-- Plain UID / member code: `0182120545` atau `MEM-2001`
-- JSON: `{"type":"kutuku_member","uid":"0182120545"}`
+Optional: `--dart-define=KIOSK_API_KEY=...` jika `KIOSK_API_KEY` di-set di backend.

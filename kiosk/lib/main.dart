@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'config/kiosk_config.dart';
-import 'screens/kiosk_flow_page.dart';
+import 'screens/splash_page.dart';
 import 'services/kiosk_api.dart';
-import 'theme/kiosk_theme.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +28,7 @@ class KioskApp extends StatelessWidget {
       title: 'Kutuku Kiosk',
       debugShowCheckedModeBanner: false,
       theme: buildKioskTheme(),
-      home: KioskFlowPage(api: KioskApi()),
+      home: KioskSplashPage(api: KioskApi()),
     );
   }
 }

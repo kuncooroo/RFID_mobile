@@ -21,7 +21,7 @@
             @forelse($logs as $log)
                 <tr>
                     <td>{{ $log->created_at?->format('Y-m-d H:i:s') }}</td>
-                    <td>{{ $log->user?->name ?? 'System' }}</td>
+                    <td>{{ $log->admin?->name ?? $log->user?->name ?? 'System' }}</td>
                     <td><span class="badge neutral">{{ $log->action }}</span></td>
                     <td>{{ $log->description }}</td>
                     <td>{{ $log->ip_address ?? '—' }}</td>

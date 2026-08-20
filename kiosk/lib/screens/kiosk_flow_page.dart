@@ -7,15 +7,45 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../config/kiosk_config.dart';
+import '../l10n/kiosk_strings.dart';
 import '../models/kiosk_member.dart';
+import '../models/presence.dart';
 import '../services/kiosk_api.dart';
+import '../services/presence_service.dart';
 import '../services/rfid_keyboard_buffer.dart';
-import '../theme/kiosk_theme.dart';
-import 'widgets/kiosk_frame.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../widgets/kiosk_scaffold.dart';
+import 'idle_page.dart';
+import 'photo_preview_page.dart';
+import 'register_pages.dart';
+import 'status_pages.dart';
 
-enum KioskStep { idle, verifying, countdown, previewUpload }
+enum KioskStep {
+  welcome,
+  rfidScan,
+  verifyingRfid,
+  memberFound,
+  newMember,
+  registrationName,
+  registrationContact,
+  registrationConfirm,
+  cameraPrep,
+  cameraCapture,
+  photoPreview,
+  verifyingPresence,
+  checkingIn,
+  awardingPoints,
+  checkInSuccess,
+  pointsEarned,
+  duplicateCheckIn,
+  cameraError,
+  sessionTimeout,
+  offline,
+  error,
+  help,
+}
 
-/// Fullscreen self-service loop: idle → verify → countdown → upload → idle.
 class KioskFlowPage extends StatefulWidget {
   const KioskFlowPage({super.key, required this.api});
 
@@ -34,18 +64,36 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     autoStart: false,
   );
 
-  /// Serializes start/stop/dispose so scanner + camera never overlap.
+  late final PresenceService _presence = PresenceService(widget.api);
+
   Future<void> _cameraGate = Future<void>.value();
 
-  KioskStep _step = KioskStep.idle;
-  String? _statusMessage;
-  bool _busy = false;
-  KioskMember? _member;
-  Uint8List? _previewBytes;
+  KioskStep _step = KioskStep.welcome;
+  KioskLang _lang = KioskLang.en;
+  String? _errorMessage;
+  final bool _rfidReady = true;
+  bool _serverOnline = true;
+
+  RfidLookup? _lookup;
+  RegisterDraft? _draft;
+  Uint8List? _photoBytes;
+  CheckInRecord? _checkIn;
 
   CameraController? _cameraController;
   Timer? _countdownTimer;
+  Timer? _healthTimer;
+  Timer? _holdTimer;
+  Timer? _sessionTimer;
   int _countdown = KioskConfig.countdownSeconds;
+
+  KioskStrings get _s => KioskStrings(_lang);
+
+  bool get _hardwareReady => _rfidReady && _serverOnline;
+
+  bool get _onScanSurface =>
+      _step == KioskStep.welcome || _step == KioskStep.rfidScan;
+
+  bool get _listenRfid => _onScanSurface && _hardwareReady;
 
   @override
   void initState() {
@@ -54,16 +102,82 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       if (!mounted) return;
       _rfidFocus.requestFocus();
       unawaited(_startScannerSafely());
+      _startHealthPoll();
     });
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _healthTimer?.cancel();
+    _holdTimer?.cancel();
+    _sessionTimer?.cancel();
     _rfidFocus.dispose();
     unawaited(_disposeCamera());
     _scannerController.dispose();
     super.dispose();
+  }
+
+  void _bumpSession() {
+    _sessionTimer?.cancel();
+    if (_step == KioskStep.welcome ||
+        _step == KioskStep.sessionTimeout ||
+        _step == KioskStep.checkInSuccess ||
+        _step == KioskStep.pointsEarned) {
+      return;
+    }
+    _sessionTimer = Timer(KioskConfig.sessionTimeout, _onSessionTimeout);
+  }
+
+  void _onSessionTimeout() {
+    if (!mounted) return;
+    unawaited(_timeoutSession());
+  }
+
+  Future<void> _timeoutSession() async {
+    _countdownTimer?.cancel();
+    _holdTimer?.cancel();
+    await _disposeCamera();
+    await _stopScannerFully();
+    if (!mounted) return;
+    setState(() {
+      _step = KioskStep.sessionTimeout;
+      _lookup = null;
+      _draft = null;
+      _photoBytes = null;
+      _checkIn = null;
+      _errorMessage = null;
+    });
+    _holdTimer = Timer(KioskConfig.timeoutHold, () {
+      if (!mounted) return;
+      unawaited(_goIdle());
+    });
+  }
+
+  void _startHealthPoll() {
+    _healthTimer?.cancel();
+    unawaited(_pollHealth());
+    _healthTimer = Timer.periodic(KioskConfig.healthPoll, (_) {
+      unawaited(_pollHealth());
+    });
+  }
+
+  Future<void> _pollHealth() async {
+    try {
+      await widget.api.health().timeout(const Duration(seconds: 6));
+      if (!mounted) return;
+      final wasOffline = !_serverOnline;
+      setState(() => _serverOnline = true);
+      if (wasOffline && _onScanSurface) {
+        unawaited(_startScannerSafely());
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _serverOnline = false);
+      if (_onScanSurface) {
+        unawaited(_stopScannerFully());
+      }
+    }
   }
 
   Future<T> _withCameraGate<T>(Future<T> Function() action) {
@@ -71,10 +185,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     _cameraGate = run.then<void>(
       (_) {},
       onError: (Object error, StackTrace stackTrace) {
-        debugPrint('[CAMERA-DEBUG] cameraGate swallowed error for sequencing');
-        debugPrint('[CAMERA-DEBUG] exception type: ${error.runtimeType}');
-        debugPrint('[CAMERA-DEBUG] exception message: $error');
-        debugPrint('[CAMERA-DEBUG] stack trace:\n$stackTrace');
+        debugPrint('[kiosk] cameraGate $error\n$stackTrace');
       },
     );
     return run;
@@ -82,391 +193,528 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
 
   Future<void> _startScannerSafely() {
     return _withCameraGate(() async {
-      debugPrint('[CAMERA-DEBUG] MobileScanner start requested (step=$_step)');
-      if (!mounted || _step != KioskStep.idle) {
-        debugPrint(
-          '[CAMERA-DEBUG] MobileScanner start SKIPPED '
-          '(mounted=$mounted step=$_step)',
-        );
-        return;
-      }
-      // CameraController must be fully gone before scanner claims the device.
+      if (!mounted || !_onScanSurface || !_hardwareReady) return;
       await _disposeCameraUnlocked();
       await Future<void>.delayed(const Duration(milliseconds: 350));
-      if (!mounted || _step != KioskStep.idle) {
-        debugPrint(
-          '[CAMERA-DEBUG] MobileScanner start SKIPPED after delay '
-          '(mounted=$mounted step=$_step)',
-        );
-        return;
-      }
+      if (!mounted || !_onScanSurface || !_hardwareReady) return;
       try {
-        debugPrint('[CAMERA-DEBUG] MobileScanner.start() START');
         await _scannerController.start();
-        debugPrint('[CAMERA-DEBUG] MobileScanner.start() SUCCESS');
-      } catch (e, st) {
-        debugPrint('[CAMERA-DEBUG] MobileScanner.start() FAILED');
-        debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-        debugPrint('[CAMERA-DEBUG] exception message: $e');
-        debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
-        // Logged only — idle recovery must not crash the flow.
+      } catch (e) {
+        debugPrint('[kiosk] scanner start failed: $e');
       }
     });
   }
 
   Future<void> _stopScannerFully() {
     return _withCameraGate(() async {
-      debugPrint('[CAMERA-DEBUG] Disposing/stopping MobileScanner START');
       try {
         await _scannerController.stop();
-        debugPrint('[CAMERA-DEBUG] MobileScanner.stop() SUCCESS');
-      } catch (e, st) {
-        debugPrint('[CAMERA-DEBUG] MobileScanner.stop() FAILED');
-        debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-        debugPrint('[CAMERA-DEBUG] exception message: $e');
-        debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
-        // Still wait for browser release even if stop threw.
+      } catch (e) {
+        debugPrint('[kiosk] scanner stop failed: $e');
       }
-      // Give Chrome time to release the MediaStream before CameraController.
-      debugPrint('[CAMERA-DEBUG] Waiting 450ms after MobileScanner stop');
       await Future<void>.delayed(const Duration(milliseconds: 450));
-      debugPrint('[CAMERA-DEBUG] Disposing/stopping MobileScanner DONE');
     });
   }
 
-  void _logCameraValue(String label, CameraController? controller) {
-    if (controller == null) {
-      debugPrint('[CAMERA-DEBUG] $label: controller=null');
-      return;
-    }
-    final v = controller.value;
-    debugPrint('[CAMERA-DEBUG] $label:');
-    debugPrint('[CAMERA-DEBUG]   isInitialized=${v.isInitialized}');
-    debugPrint('[CAMERA-DEBUG]   isTakingPicture=${v.isTakingPicture}');
-    debugPrint('[CAMERA-DEBUG]   hasError=${v.hasError}');
-    debugPrint('[CAMERA-DEBUG]   errorDescription=${v.errorDescription}');
-    debugPrint('[CAMERA-DEBUG]   previewSize=${v.previewSize}');
-    debugPrint('[CAMERA-DEBUG]   isPreviewPaused=${v.isPreviewPaused}');
-  }
-
   void _onKey(KeyEvent event) {
-    if (_step != KioskStep.idle || _busy) return;
+    if (!_listenRfid) return;
     final code = _rfidBuffer.handleKeyEvent(event);
     if (code != null) {
-      debugPrint('[CAMERA-DEBUG] RFID code detected from keyboard: $code');
-      unawaited(_handleDetectedCode(code, source: 'RFID'));
+      unawaited(_handleDetectedCode(code));
     }
   }
 
   void _onQrDetect(BarcodeCapture capture) {
-    if (_step != KioskStep.idle || _busy) return;
+    if (!_listenRfid) return;
     for (final barcode in capture.barcodes) {
       final raw = barcode.rawValue?.trim();
       if (raw == null || raw.isEmpty) continue;
-      debugPrint('[CAMERA-DEBUG] QR code detected: $raw');
-      unawaited(_handleDetectedCode(raw, source: 'QR'));
+      unawaited(_handleDetectedCode(raw));
       break;
     }
   }
 
-  Future<void> _handleDetectedCode(String code, {required String source}) async {
-    if (_busy || _step != KioskStep.idle) {
-      debugPrint(
-        '[CAMERA-DEBUG] detect ignored (busy=$_busy step=$_step source=$source)',
-      );
+  Future<void> _openScan() async {
+    if (!_serverOnline) {
+      setState(() => _step = KioskStep.offline);
       return;
     }
-    setState(() {
-      _busy = true;
-      _step = KioskStep.verifying;
-      _statusMessage = 'Memverifikasi $source...';
-    });
-    debugPrint('[CAMERA-DEBUG] Step -> verifying ($source code=$code)');
+    setState(() => _step = KioskStep.rfidScan);
+    _bumpSession();
+    await _startScannerSafely();
+    _rfidFocus.requestFocus();
+  }
 
-    // Unmount MobileScanner (verifying has showScanner=false) then release stream.
-    debugPrint('[CAMERA-DEBUG] Waiting endOfFrame before MobileScanner stop');
+  Future<void> _handleDetectedCode(String code) async {
+    if (!_onScanSurface || !_hardwareReady) return;
+    setState(() {
+      _step = KioskStep.verifyingRfid;
+      _errorMessage = null;
+    });
+    _bumpSession();
+
     await WidgetsBinding.instance.endOfFrame;
     await _stopScannerFully();
 
     try {
-      debugPrint('[CAMERA-DEBUG] verify API START');
-      final member = await widget.api.verify(code);
-      debugPrint(
-        '[CAMERA-DEBUG] RFID verification completed '
-        'user=${member.name} uid=${member.rfidUid} userId=${member.userId}',
-      );
-      if (!mounted) {
-        debugPrint('[CAMERA-DEBUG] widget unmounted after verify — abort');
-        return;
-      }
-      setState(() {
-        _member = member;
-        _statusMessage = 'Halo, ${member.name}!';
-      });
-      debugPrint('[CAMERA-DEBUG] Halo UI shown for ${member.name}');
-      debugPrint('[CAMERA-DEBUG] Starting countdown capture');
-      await _startCountdownCapture();
-      debugPrint('[CAMERA-DEBUG] _startCountdownCapture() returned');
-    } catch (e, st) {
-      debugPrint('[CAMERA-DEBUG] verify / post-verify FAILED');
-      debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-      debugPrint('[CAMERA-DEBUG] exception message: $e');
-      debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
+      final lookup = await widget.api
+          .lookupRfid(code)
+          .timeout(KioskConfig.lookupTimeout);
       if (!mounted) return;
-      setState(() {
-        _step = KioskStep.idle;
-        _busy = false;
-        _statusMessage = e.toString().replaceFirst('Exception: ', '');
-      });
-      await _startScannerSafely();
-      _rfidFocus.requestFocus();
-      Future<void>.delayed(KioskConfig.errorHold, () {
-        if (!mounted || _step != KioskStep.idle) return;
-        setState(() => _statusMessage = null);
-      });
+
+      switch (lookup.resultCode) {
+        case RfidLookupCode.memberFound:
+          setState(() {
+            _lookup = lookup;
+            _step = KioskStep.memberFound;
+          });
+          _bumpSession();
+          _holdTimer?.cancel();
+          _holdTimer = Timer(KioskConfig.memberFoundHold, () {
+            if (!mounted || _step != KioskStep.memberFound) return;
+            setState(() => _step = KioskStep.cameraPrep);
+          });
+        case RfidLookupCode.rfidNotRegistered:
+          setState(() {
+            _lookup = lookup;
+            _step = KioskStep.newMember;
+          });
+          _bumpSession();
+        case RfidLookupCode.rfidInactive:
+          _showError(_s.rfidInactive);
+        case RfidLookupCode.rfidInvalid:
+          _showError(_s.rfidInvalid);
+        case RfidLookupCode.serverError:
+          _showError(_s.genericError);
+      }
+    } on TimeoutException {
+      _showError(_s.lookupTimeout);
+    } catch (e) {
+      _showError(_customerMessage(e));
     }
   }
 
-  Future<void> _startCountdownCapture() async {
-    debugPrint('[CAMERA-DEBUG] _startCountdownCapture() ENTER');
+  String _customerMessage(Object error) {
+    final raw = error.toString().replaceFirst('Exception: ', '');
+    final lower = raw.toLowerCase();
+    if (lower.contains('socket') ||
+        lower.contains('connection') ||
+        lower.contains('dio') ||
+        lower.contains('timed out') ||
+        lower.contains('timeout') ||
+        lower.contains('network')) {
+      return _s.networkError;
+    }
+    if (raw.length > 140 ||
+        lower.contains('stack') ||
+        lower.contains('exception') ||
+        lower.contains('error:')) {
+      return _s.genericError;
+    }
+    return raw;
+  }
+
+  void _showError(String message, {bool camera = false}) {
+    if (!mounted) return;
+    _holdTimer?.cancel();
+    setState(() {
+      _errorMessage = message;
+      _step = camera ? KioskStep.cameraError : KioskStep.error;
+    });
+    _bumpSession();
+  }
+
+  Future<void> _goIdle() async {
+    _countdownTimer?.cancel();
+    _holdTimer?.cancel();
+    _sessionTimer?.cancel();
+    await _disposeCamera();
+    if (!mounted) return;
+    setState(() {
+      _step = KioskStep.welcome;
+      _lookup = null;
+      _draft = null;
+      _photoBytes = null;
+      _checkIn = null;
+      _errorMessage = null;
+      _countdown = KioskConfig.countdownSeconds;
+    });
+    await _startScannerSafely();
+    _rfidFocus.requestFocus();
+  }
+
+  Future<void> _retryFromError() async {
+    if (_photoBytes != null && _lookup != null) {
+      setState(() => _step = KioskStep.photoPreview);
+      _bumpSession();
+      return;
+    }
+    if (_lookup != null && _lookup!.isRegistered) {
+      setState(() => _step = KioskStep.cameraPrep);
+      _bumpSession();
+      return;
+    }
+    await _goIdle();
+  }
+
+  Future<void> _startCameraCapture() async {
+    setState(() => _step = KioskStep.cameraCapture);
+    _bumpSession();
     try {
       await _withCameraGate(() async {
-        debugPrint('[CAMERA-DEBUG] cameraGate acquired for countdown capture');
-        // Scanner widget must already be off-tree; ensure no leftover CameraController.
-        debugPrint('[CAMERA-DEBUG] Disposing previous CameraController if any');
         await _disposeCameraUnlocked();
-        debugPrint('[CAMERA-DEBUG] Waiting 400ms before creating CameraController');
         await Future<void>.delayed(const Duration(milliseconds: 400));
-        if (!mounted) {
-          debugPrint('[CAMERA-DEBUG] unmounted before availableCameras — abort');
-          return;
-        }
-
-        debugPrint('[CAMERA-DEBUG] availableCameras() START');
+        if (!mounted) return;
         final cameras = await availableCameras();
-        debugPrint('[CAMERA-DEBUG] availableCameras() count=${cameras.length}');
         if (cameras.isEmpty) {
-          throw Exception('Kamera tidak tersedia di perangkat ini.');
-        }
-        for (final c in cameras) {
-          debugPrint(
-            '[CAMERA-DEBUG] camera option: name=${c.name} '
-            'lens=${c.lensDirection.name} sensor=${c.sensorOrientation}',
-          );
+          throw Exception('camera');
         }
         final preferred = cameras.firstWhere(
           (c) => c.lensDirection == CameraLensDirection.front,
           orElse: () => cameras.first,
         );
-        debugPrint(
-          '[CAMERA-DEBUG] selected camera: ${preferred.name} '
-          '(${preferred.lensDirection.name})',
+        final controller = CameraController(
+          preferred,
+          kIsWeb ? ResolutionPreset.medium : ResolutionPreset.high,
+          enableAudio: false,
+          imageFormatGroup: kIsWeb ? null : ImageFormatGroup.jpeg,
         );
-
-        debugPrint('[CAMERA-DEBUG] Creating CameraController');
-        late final CameraController controller;
-        try {
-          // On web, avoid ImageFormatGroup.jpeg — it can break initialize/takePicture.
-          controller = CameraController(
-            preferred,
-            kIsWeb ? ResolutionPreset.medium : ResolutionPreset.high,
-            enableAudio: false,
-            imageFormatGroup: kIsWeb ? null : ImageFormatGroup.jpeg,
-          );
-          debugPrint(
-            '[CAMERA-DEBUG] CameraController created '
-            '(preset=${kIsWeb ? 'medium' : 'high'} kIsWeb=$kIsWeb)',
-          );
-          _logCameraValue('after create (before initialize)', controller);
-        } catch (e, st) {
-          debugPrint('[CAMERA-DEBUG] Creating CameraController FAILED');
-          debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-          debugPrint('[CAMERA-DEBUG] exception message: $e');
-          debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
-          rethrow;
-        }
-
-        try {
-          debugPrint('[CAMERA-DEBUG] Camera initialization START');
-          await controller.initialize();
-          debugPrint('[CAMERA-DEBUG] Camera initialization SUCCESS');
-          debugPrint(
-            '[CAMERA-DEBUG] Camera initialized: ${controller.value.isInitialized}',
-          );
-          _logCameraValue('after initialize()', controller);
-        } catch (e, st) {
-          debugPrint('[CAMERA-DEBUG] Camera initialization FAILED');
-          debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-          debugPrint('[CAMERA-DEBUG] exception message: $e');
-          debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
-          _logCameraValue('after initialize() failure', controller);
-          try {
-            await controller.dispose();
-          } catch (disposeError, disposeSt) {
-            debugPrint('[CAMERA-DEBUG] dispose after failed init FAILED');
-            debugPrint('[CAMERA-DEBUG] exception type: ${disposeError.runtimeType}');
-            debugPrint('[CAMERA-DEBUG] exception message: $disposeError');
-            debugPrint('[CAMERA-DEBUG] stack trace:\n$disposeSt');
-          }
-          rethrow;
-        }
-
+        await controller.initialize();
         if (!mounted) {
-          debugPrint('[CAMERA-DEBUG] unmounted after initialize — disposing');
           await controller.dispose();
           return;
         }
-
         setState(() {
           _cameraController = controller;
-          _step = KioskStep.countdown;
           _countdown = KioskConfig.countdownSeconds;
-          _busy = false;
-          _statusMessage = 'Posisikan wajah Anda di dalam bingkai';
         });
-        debugPrint('[CAMERA-DEBUG] Step -> countdown');
-        debugPrint('[CAMERA-DEBUG] Countdown START');
-        debugPrint('[CAMERA-DEBUG] Countdown: $_countdown');
-
         _countdownTimer?.cancel();
         _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (!mounted) {
-            debugPrint('[CAMERA-DEBUG] Countdown aborted (unmounted)');
             timer.cancel();
             return;
           }
           if (_countdown <= 1) {
             timer.cancel();
-            debugPrint('[CAMERA-DEBUG] Countdown: 1');
-            debugPrint('[CAMERA-DEBUG] Countdown finished');
-            unawaited(_snapAndUpload());
+            unawaited(_snapPhoto());
           } else {
             setState(() => _countdown -= 1);
-            debugPrint('[CAMERA-DEBUG] Countdown: $_countdown');
           }
         });
       });
-    } catch (e, st) {
-      debugPrint('[CAMERA-DEBUG] _startCountdownCapture() FAILED');
-      debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-      debugPrint('[CAMERA-DEBUG] exception message: $e');
-      debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
-      await _failAndReset(e.toString());
+    } catch (_) {
+      _showError(_s.cameraUnavailableBody, camera: true);
     }
   }
 
-  Future<void> _snapAndUpload() async {
-    debugPrint('[CAMERA-DEBUG] _snapAndUpload() ENTER');
-    final member = _member;
+  Future<void> _snapPhoto() async {
     final camera = _cameraController;
-    _logCameraValue('before takePicture checks', camera);
+    if (camera == null || !camera.value.isInitialized) {
+      _showError(_s.cameraUnavailableBody, camera: true);
+      return;
+    }
+    setState(() => _countdown = 0);
+    try {
+      final file = await camera.takePicture();
+      final bytes = await file.readAsBytes();
+      await _disposeCamera();
+      if (!mounted) return;
+      setState(() {
+        _photoBytes = bytes;
+        _step = KioskStep.photoPreview;
+      });
+      _bumpSession();
+    } catch (_) {
+      _showError(_s.cameraUnavailableBody, camera: true);
+    }
+  }
 
-    if (member == null) {
-      debugPrint('[CAMERA-DEBUG] takePicture() SKIPPED — member is null');
-      await _failAndReset('Kamera belum siap.');
+  Future<void> _usePhoto() async {
+    final lookup = _lookup;
+    final bytes = _photoBytes;
+    if (lookup == null || bytes == null || bytes.isEmpty) {
+      _showError(_s.genericError);
       return;
     }
-    if (camera == null) {
-      debugPrint('[CAMERA-DEBUG] takePicture() SKIPPED — camera controller is null');
-      await _failAndReset('Kamera belum siap.');
-      return;
-    }
-    if (!camera.value.isInitialized) {
-      debugPrint('[CAMERA-DEBUG] takePicture() SKIPPED — isInitialized=false');
-      _logCameraValue('not initialized', camera);
-      await _failAndReset('Kamera belum siap.');
-      return;
-    }
-
-    setState(() {
-      _busy = true;
-      _statusMessage = 'Mengambil foto...';
-      _countdown = 0;
-    });
 
     try {
-      debugPrint('[CAMERA-DEBUG] takePicture() START');
-      _logCameraValue('takePicture() START', camera);
-      final file = await camera.takePicture();
-      debugPrint('[CAMERA-DEBUG] takePicture() SUCCESS path=${file.path}');
-      final bytes = await file.readAsBytes();
-      debugPrint('[CAMERA-DEBUG] readAsBytes() SUCCESS bytes=${bytes.length}');
+      var bound = lookup;
+      if (!bound.isRegistered) {
+        final draft = _draft;
+        if (draft == null) {
+          _showError(_s.genericError);
+          return;
+        }
+        setState(() => _step = KioskStep.verifyingPresence);
+        bound = await widget.api.registerVisitor(
+          rfidUid: lookup.rfidUid,
+          name: draft.name,
+          email: draft.email,
+          phone: draft.phone,
+        );
+        if (!mounted) return;
+        setState(() => _lookup = bound);
+      }
 
-      // Release CameraController immediately after capture (preview uses bytes).
-      debugPrint('[CAMERA-DEBUG] Disposing CameraController after capture');
-      await _disposeCamera();
+      setState(() => _step = KioskStep.verifyingPresence);
+      final presence = await _presence.submitCapture(
+        rfidUid: bound.rfidUid,
+        photoBytes: bytes,
+      );
 
-      if (!mounted) {
-        debugPrint('[CAMERA-DEBUG] unmounted after capture — abort upload');
+      if (!mounted) return;
+      setState(() => _step = KioskStep.checkingIn);
+      final checkIn = await _presence.completeCheckIn(
+        presence: presence,
+        rfidUid: bound.rfidUid,
+      );
+
+      if (!mounted) return;
+      if (!checkIn.succeeded) {
+        _showError(_s.checkInFailed);
         return;
       }
 
-      setState(() {
-        _previewBytes = bytes;
-        _step = KioskStep.previewUpload;
-        _statusMessage = 'Mengunggah foto ke galeri...';
-      });
-      debugPrint('[CAMERA-DEBUG] Step -> previewUpload, upload START');
+      setState(() => _checkIn = checkIn);
 
-      await widget.api.uploadPhoto(
-        code: member.rfidUid,
-        userId: member.userId,
-        bytes: bytes,
-        filename: 'kiosk_${member.rfidUid}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-      );
-      debugPrint('[CAMERA-DEBUG] uploadPhoto() SUCCESS');
+      if (checkIn.alreadyCheckedInToday && checkIn.pointsAwarded == 0) {
+        setState(() => _step = KioskStep.duplicateCheckIn);
+        _bumpSession();
+        return;
+      }
 
+      setState(() => _step = KioskStep.awardingPoints);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
-      setState(() => _statusMessage = 'Berhasil! Terima kasih, ${member.name}.');
-
-      await Future<void>.delayed(KioskConfig.previewHold);
-      await _resetToIdle();
-      debugPrint('[CAMERA-DEBUG] reset to idle after successful upload');
-    } catch (e, st) {
-      debugPrint('[CAMERA-DEBUG] takePicture() FAILED / upload FAILED');
-      debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-      debugPrint('[CAMERA-DEBUG] exception message: $e');
-      debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
-      _logCameraValue('after takePicture/upload failure', _cameraController);
-      await _failAndReset(e.toString());
+      setState(() => _step = KioskStep.checkInSuccess);
+      _holdTimer?.cancel();
+      _holdTimer = Timer(const Duration(seconds: 6), () {
+        if (!mounted || _step != KioskStep.checkInSuccess) return;
+        setState(() => _step = KioskStep.pointsEarned);
+        _armIdleFromPoints();
+      });
+    } catch (e) {
+      _showError(_customerMessage(e));
     }
   }
 
-  Future<void> _failAndReset(String message) async {
-    debugPrint('[CAMERA-DEBUG] _failAndReset message=$message');
-    if (!mounted) return;
-    _countdownTimer?.cancel();
-    setState(() {
-      _step = KioskStep.idle;
-      _busy = false;
-      _statusMessage = message.replaceFirst('Exception: ', '');
-      _member = null;
-      _previewBytes = null;
-    });
-    await _disposeCamera();
-    await _startScannerSafely();
-    _rfidFocus.requestFocus();
-    Future<void>.delayed(KioskConfig.errorHold, () {
-      if (!mounted || _step != KioskStep.idle) return;
-      setState(() => _statusMessage = null);
+  void _armIdleFromPoints() {
+    _holdTimer?.cancel();
+    _holdTimer = Timer(KioskConfig.successHold, () {
+      if (!mounted || _step != KioskStep.pointsEarned) return;
+      unawaited(_goIdle());
     });
   }
 
-  Future<void> _resetToIdle() async {
-    debugPrint('[CAMERA-DEBUG] _resetToIdle()');
-    _countdownTimer?.cancel();
-    await _disposeCamera();
-    if (!mounted) return;
-    setState(() {
-      _step = KioskStep.idle;
-      _busy = false;
-      _member = null;
-      _previewBytes = null;
-      _statusMessage = null;
-      _countdown = KioskConfig.countdownSeconds;
-    });
-    await _startScannerSafely();
-    _rfidFocus.requestFocus();
+  DateTime? _checkedInAt() {
+    final raw = _checkIn?.checkedInAt;
+    if (raw == null || raw.isEmpty) return DateTime.now();
+    return DateTime.tryParse(raw) ?? DateTime.now();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyboardListener(
+      focusNode: _rfidFocus,
+      autofocus: _listenRfid,
+      onKeyEvent: _onKey,
+      child: GestureDetector(
+        onTapDown: (_) => _bumpSession(),
+        behavior: HitTestBehavior.translucent,
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          body: _buildStep(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep() {
+    switch (_step) {
+      case KioskStep.welcome:
+        return WelcomePage(
+          strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
+          serverOnline: _serverOnline,
+          onCheckIn: () => unawaited(_openScan()),
+          onRegister: () => unawaited(_openScan()),
+          onHelp: () => setState(() => _step = KioskStep.help),
+        );
+      case KioskStep.rfidScan:
+      case KioskStep.verifyingRfid:
+        return RfidScanPage(
+          strings: _s,
+          scannerController: _scannerController,
+          onDetect: _onQrDetect,
+          showScanner: _step == KioskStep.rfidScan && _hardwareReady,
+          processing: _step == KioskStep.verifyingRfid,
+          onCancel: () => unawaited(_goIdle()),
+          onHelp: () => setState(() => _step = KioskStep.help),
+          serverOnline: _serverOnline,
+        );
+      case KioskStep.memberFound:
+        return RegisteredPage(
+          lookup: _lookup!,
+          strings: _s,
+          onContinue: () {
+            _holdTimer?.cancel();
+            setState(() => _step = KioskStep.cameraPrep);
+            _bumpSession();
+          },
+        );
+      case KioskStep.newMember:
+        return UnregisteredPage(
+          strings: _s,
+          onRegister: () {
+            _rfidFocus.unfocus();
+            setState(() => _step = KioskStep.registrationName);
+            _bumpSession();
+          },
+          onCancel: () => unawaited(_goIdle()),
+        );
+      case KioskStep.registrationName:
+        return RegisterNamePage(
+          strings: _s,
+          initial: _draft?.name ?? '',
+          onContinue: (name) {
+            setState(() {
+              _draft = RegisterDraft(
+                name: name,
+                email: _draft?.email,
+                phone: _draft?.phone,
+              );
+              _step = KioskStep.registrationContact;
+            });
+            _bumpSession();
+          },
+          onCancel: () => unawaited(_goIdle()),
+        );
+      case KioskStep.registrationContact:
+        return RegisterContactPage(
+          strings: _s,
+          initialEmail: _draft?.email,
+          initialPhone: _draft?.phone,
+          onContinue: (email, phone) {
+            setState(() {
+              _draft = RegisterDraft(
+                name: _draft?.name ?? '',
+                email: email,
+                phone: phone,
+              );
+              _step = KioskStep.registrationConfirm;
+            });
+            _bumpSession();
+          },
+          onBack: () {
+            setState(() => _step = KioskStep.registrationName);
+            _bumpSession();
+          },
+        );
+      case KioskStep.registrationConfirm:
+        return RegisterConfirmPage(
+          strings: _s,
+          name: _draft?.name ?? '',
+          email: _draft?.email,
+          phone: _draft?.phone,
+          rfidUid: _lookup?.rfidUid ?? '',
+          onCreate: () {
+            setState(() => _step = KioskStep.cameraPrep);
+            _bumpSession();
+          },
+          onBack: () {
+            setState(() => _step = KioskStep.registrationContact);
+            _bumpSession();
+          },
+        );
+      case KioskStep.cameraPrep:
+        return CameraPrepPage(
+          strings: _s,
+          onContinue: () => unawaited(_startCameraCapture()),
+        );
+      case KioskStep.cameraCapture:
+        return _CameraCaptureView(
+          strings: _s,
+          controller: _cameraController,
+          countdown: _countdown,
+        );
+      case KioskStep.photoPreview:
+        return PhotoPreviewPage(
+          strings: _s,
+          photoBytes: _photoBytes!,
+          onUsePhoto: () => unawaited(_usePhoto()),
+          onRetake: () => unawaited(_startCameraCapture()),
+        );
+      case KioskStep.verifyingPresence:
+        return ProgressStatusPage(
+          title: _s.confirmingPresence,
+          message: _s.pleaseWait,
+        );
+      case KioskStep.checkingIn:
+        return ProgressStatusPage(
+          title: _s.checkingIn,
+          message: _s.pleaseWait,
+        );
+      case KioskStep.awardingPoints:
+        return ProgressStatusPage(
+          title: _s.awardingPoints,
+          message: _s.pleaseWait,
+        );
+      case KioskStep.checkInSuccess:
+        return SuccessPage(
+          strings: _s,
+          name: _checkIn?.memberName ?? _lookup?.user?.name ?? '',
+          checkedInAt: _checkedInAt(),
+          onContinue: () {
+            _holdTimer?.cancel();
+            setState(() => _step = KioskStep.pointsEarned);
+            _armIdleFromPoints();
+          },
+        );
+      case KioskStep.pointsEarned:
+        return PointsPage(
+          strings: _s,
+          pointsAwarded: _checkIn?.pointsAwarded ?? 0,
+          pointsBalance: _checkIn?.pointsBalance ?? 0,
+          onDone: () => unawaited(_goIdle()),
+        );
+      case KioskStep.duplicateCheckIn:
+        return DuplicateCheckInPage(
+          strings: _s,
+          onHome: () => unawaited(_goIdle()),
+        );
+      case KioskStep.cameraError:
+        return CameraErrorPage(
+          strings: _s,
+          onRetry: () => unawaited(_startCameraCapture()),
+          onHome: () => unawaited(_goIdle()),
+        );
+      case KioskStep.sessionTimeout:
+        return TimeoutPage(
+          strings: _s,
+          onStart: () => unawaited(_goIdle()),
+        );
+      case KioskStep.offline:
+        return OfflinePage(
+          strings: _s,
+          onRetry: () async {
+            await _pollHealth();
+            if (_serverOnline) {
+              await _openScan();
+            }
+          },
+          onHome: () => unawaited(_goIdle()),
+        );
+      case KioskStep.error:
+        return ErrorPage(
+          strings: _s,
+          message: _errorMessage ?? _s.couldNotCheckIn,
+          onRetry: () => unawaited(_retryFromError()),
+          onCancel: () => unawaited(_goIdle()),
+        );
+      case KioskStep.help:
+        return HelpPage(strings: _s, onBack: () => unawaited(_goIdle()));
+    }
   }
 
   Future<void> _disposeCamera() {
@@ -476,195 +724,45 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
   Future<void> _disposeCameraUnlocked() async {
     final cam = _cameraController;
     _cameraController = null;
-    if (cam == null) {
-      debugPrint('[CAMERA-DEBUG] CameraController dispose skipped (null)');
-      return;
-    }
-    debugPrint('[CAMERA-DEBUG] CameraController.dispose() START');
-    _logCameraValue('before dispose', cam);
+    if (cam == null) return;
     try {
       await cam.dispose();
-      debugPrint('[CAMERA-DEBUG] CameraController.dispose() SUCCESS');
-    } catch (e, st) {
-      debugPrint('[CAMERA-DEBUG] CameraController.dispose() FAILED');
-      debugPrint('[CAMERA-DEBUG] exception type: ${e.runtimeType}');
-      debugPrint('[CAMERA-DEBUG] exception message: $e');
-      debugPrint('[CAMERA-DEBUG] stack trace:\n$st');
-      // Logged — continue delay so browser can still release the device.
+    } catch (e) {
+      debugPrint('[kiosk] camera dispose: $e');
     }
-    // Browser needs a beat before another getUserMedia call.
     await Future<void>.delayed(const Duration(milliseconds: 350));
-    debugPrint('[CAMERA-DEBUG] post-dispose delay done');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _rfidFocus,
-      autofocus: true,
-      onKeyEvent: _onKey,
-      child: Scaffold(
-        body: SafeArea(
-          child: switch (_step) {
-            KioskStep.idle => _IdleView(
-                scannerController: _scannerController,
-                onDetect: _onQrDetect,
-                showScanner: true,
-                verifying: false,
-                statusMessage: _statusMessage,
-              ),
-            // Critical on Chrome: do NOT keep MobileScanner mounted while
-            // CameraController.initialize() runs after RFID verify.
-            KioskStep.verifying => _IdleView(
-                scannerController: _scannerController,
-                onDetect: _onQrDetect,
-                showScanner: false,
-                verifying: true,
-                statusMessage: _statusMessage,
-              ),
-            KioskStep.countdown => _CountdownView(
-                controller: _cameraController,
-                countdown: _countdown,
-                memberName: _member?.name,
-                statusMessage: _statusMessage,
-              ),
-            KioskStep.previewUpload => _PreviewView(
-                bytes: _previewBytes,
-                statusMessage: _statusMessage,
-                uploading: _busy,
-              ),
-          },
-        ),
-      ),
-    );
   }
 }
 
-class _IdleView extends StatelessWidget {
-  const _IdleView({
-    required this.scannerController,
-    required this.onDetect,
-    required this.showScanner,
-    required this.verifying,
-    this.statusMessage,
-  });
-
-  final MobileScannerController scannerController;
-  final void Function(BarcodeCapture capture) onDetect;
-  final bool showScanner;
-  final bool verifying;
-  final String? statusMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    return KioskFrame(
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          Text(
-            'KIOS FOTO RFID',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Silakan Tempel Kartu RFID Anda\nATAU Arahkan QR Code Aplikasi HP ke Kamera',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: KioskColors.muted,
-                  height: 1.35,
-                ),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ColoredBox(
-                    color: KioskColors.panel,
-                    child: showScanner
-                        ? MobileScanner(
-                            controller: scannerController,
-                            onDetect: onDetect,
-                          )
-                        : const SizedBox.expand(),
-                  ),
-                  IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: KioskColors.primary.withValues(alpha: 0.55),
-                          width: 3,
-                        ),
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                    ),
-                  ),
-                  if (verifying)
-                    ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      child: const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _StatusBanner(
-            message: statusMessage ??
-                'Menunggu kartu RFID USB atau QR Code digital...',
-            tone: statusMessage != null && !verifying
-                ? _BannerTone.danger
-                : _BannerTone.neutral,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CountdownView extends StatelessWidget {
-  const _CountdownView({
+class _CameraCaptureView extends StatelessWidget {
+  const _CameraCaptureView({
+    required this.strings,
     required this.controller,
     required this.countdown,
-    this.memberName,
-    this.statusMessage,
   });
 
+  final KioskStrings strings;
   final CameraController? controller;
   final int countdown;
-  final String? memberName;
-  final String? statusMessage;
 
   @override
   Widget build(BuildContext context) {
     final ready = controller != null && controller!.value.isInitialized;
-    return KioskFrame(
+    final overlay = countdown <= 0 ? strings.capture : '$countdown';
+    return KioskScaffold(
+      dark: true,
       child: Column(
         children: [
           Text(
-            memberName == null ? 'Bersiap...' : 'Halo, $memberName!',
+            strings.takePhoto,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            statusMessage ?? 'Tahan posisi wajah Anda',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: KioskColors.muted,
-                ),
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: AppRadius.lg,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -679,68 +777,34 @@ class _CountdownView extends StatelessWidget {
                     )
                   else
                     const ColoredBox(
-                      color: KioskColors.panel,
-                      child: Center(child: CircularProgressIndicator()),
+                      color: Color(0xFF1A1A1A),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
                     ),
+                  CustomPaint(painter: _FaceGuidePainter()),
                   Center(
                     child: Text(
-                      countdown <= 0 ? 'SNAP!' : '$countdown',
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            fontSize: 120,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            shadows: const [
-                              Shadow(blurRadius: 24, color: Colors.black54),
-                            ],
-                          ),
+                      overlay,
+                      style: TextStyle(
+                        fontSize: countdown <= 0 ? 42 : 96,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        shadows: const [
+                          Shadow(blurRadius: 18, color: Colors.black54),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PreviewView extends StatelessWidget {
-  const _PreviewView({
-    required this.bytes,
-    required this.uploading,
-    this.statusMessage,
-  });
-
-  final Uint8List? bytes;
-  final bool uploading;
-  final String? statusMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    return KioskFrame(
-      child: Column(
-        children: [
-          Text(
-            'Hasil Foto',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
           const SizedBox(height: 16),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: bytes == null
-                  ? const ColoredBox(color: KioskColors.panel)
-                  : Image.memory(bytes!, fit: BoxFit.cover, width: double.infinity),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _StatusBanner(
-            message: statusMessage ?? (uploading ? 'Mengunggah...' : 'Selesai'),
-            tone: uploading ? _BannerTone.neutral : _BannerTone.success,
-            showSpinner: uploading,
+          Text(
+            strings.keepFace,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 18),
           ),
         ],
       ),
@@ -748,61 +812,21 @@ class _PreviewView extends StatelessWidget {
   }
 }
 
-enum _BannerTone { neutral, success, danger }
-
-class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({
-    required this.message,
-    this.tone = _BannerTone.neutral,
-    this.showSpinner = false,
-  });
-
-  final String message;
-  final _BannerTone tone;
-  final bool showSpinner;
+class _FaceGuidePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final oval = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height * 0.48),
+      width: size.width * 0.58,
+      height: size.height * 0.62,
+    );
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawOval(oval, paint);
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final bg = switch (tone) {
-      _BannerTone.success => KioskColors.success.withValues(alpha: 0.18),
-      _BannerTone.danger => KioskColors.danger.withValues(alpha: 0.18),
-      _BannerTone.neutral => Colors.white.withValues(alpha: 0.08),
-    };
-    final fg = switch (tone) {
-      _BannerTone.success => KioskColors.success,
-      _BannerTone.danger => const Color(0xFFFFB4B4),
-      _BannerTone.neutral => KioskColors.text,
-    };
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          if (showSpinner) ...[
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.4, color: fg),
-            ),
-            const SizedBox(width: 14),
-          ],
-          Expanded(
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

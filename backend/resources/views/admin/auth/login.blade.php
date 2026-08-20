@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Admin Login — Kutuku RFID</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
 </head>
 <body class="login-page">
 <div class="login-card">
     <h1>Admin Dashboard</h1>
-    <p>Sign in with a staff account (admin / superadmin).</p>
+    <p>Sign in with an admin or superadmin account.</p>
 
     @if($errors->any())
         <div class="alert danger">

@@ -16,7 +16,7 @@ class EnsureUserHasRole
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        $user = $request->user();
+        $user = $request->user('admin') ?? $request->user();
 
         if ($user === null) {
             return redirect()->route('admin.login');

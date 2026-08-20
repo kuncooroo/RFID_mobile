@@ -27,7 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
         ]);
 
-        $middleware->redirectGuestsTo(fn () => route('admin.login'));
+        $middleware->redirectGuestsTo(function ($request) {
+            if ($request->is('admin') || $request->is('admin/*')) {
+                return route('admin.login');
+            }
+
+            return route('admin.login');
+        });
         $middleware->redirectUsersTo(fn () => route('admin.dashboard'));
 
         $middleware->alias([

@@ -11,7 +11,7 @@ class ActivityLogController extends Controller
     public function index(): View
     {
         $logs = AdminActivityLog::query()
-            ->with('user')
+            ->with('admin')
             ->latest()
             ->paginate(30);
 

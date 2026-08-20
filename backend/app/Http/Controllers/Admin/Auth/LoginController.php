@@ -13,7 +13,7 @@ class LoginController extends Controller
 {
     public function show(): View|RedirectResponse
     {
-        if (Auth::check() && Auth::user()?->isStaff()) {
+        if (Auth::guard('admin')->check() && Auth::guard('admin')->user()?->isStaff()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -27,7 +27,7 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => 'Invalid credentials.']);
@@ -35,9 +35,9 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        $user = Auth::user();
-        if ($user === null || ! $user->isStaff()) {
-            Auth::logout();
+        $admin = Auth::guard('admin')->user();
+        if ($admin === null || ! $admin->isStaff()) {
+            Auth::guard('admin')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
@@ -48,9 +48,9 @@ class LoginController extends Controller
 
         AdminActivityLogger::log(
             'admin.login',
-            "{$user->name} ({$user->role?->value}) signed in to admin dashboard.",
-            $user,
-            $user,
+            "{$admin->name} ({$admin->role?->value}) signed in to admin dashboard.",
+            $admin,
+            $admin,
             $request,
         );
 
@@ -59,18 +59,18 @@ class LoginController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
-        $user = Auth::user();
-        if ($user !== null) {
+        $admin = Auth::guard('admin')->user();
+        if ($admin !== null) {
             AdminActivityLogger::log(
                 'admin.logout',
-                "{$user->name} signed out.",
-                $user,
-                $user,
+                "{$admin->name} signed out.",
+                $admin,
+                $admin,
                 $request,
             );
         }
 
-        Auth::logout();
+        Auth::guard('admin')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

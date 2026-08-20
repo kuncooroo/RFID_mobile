@@ -16,7 +16,7 @@ abstract final class AppConfig {
       'API_BASE_URL must be provided in release builds via --dart-define.',
     );
     // Debug-only emulator default (cleartext HTTP).
-    return 'http://192.168.1.2:8000/api/v1';
+    return 'http://192.168.1.10:8000/api/v1';
   }
 
   static const allowRuntimeFontFetching = bool.fromEnvironment(

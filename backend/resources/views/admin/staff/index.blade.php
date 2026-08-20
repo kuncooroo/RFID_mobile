@@ -1,8 +1,8 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Staff Accounts')
-@section('heading', 'Staff accounts')
-@section('subheading', 'Manage admin and superadmin users.')
+@section('title', 'Admin Management')
+@section('heading', 'Admin Management')
+@section('subheading', 'Manage admin and superadmin accounts.')
 
 @section('content')
 <div class="toolbar">
@@ -31,7 +31,7 @@
                     <td><span class="badge neutral">{{ $user->role?->label() }}</span></td>
                     <td class="actions">
                         <a class="btn secondary sm" href="{{ route('admin.staff.edit', $user) }}">Edit</a>
-                        @if($user->id !== auth()->id())
+                        @if($user->id !== auth('admin')->id())
                             <form method="POST" action="{{ route('admin.staff.destroy', $user) }}" onsubmit="return confirm('Delete this staff account?')">
                                 @csrf
                                 @method('DELETE')

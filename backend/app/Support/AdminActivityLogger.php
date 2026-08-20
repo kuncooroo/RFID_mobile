@@ -2,10 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\Admin;
 use App\Models\AdminActivityLog;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 final class AdminActivityLogger
 {
@@ -13,14 +14,14 @@ final class AdminActivityLogger
         string $action,
         string $description,
         ?Model $subject = null,
-        ?User $actor = null,
+        ?Admin $actor = null,
         ?Request $request = null,
     ): void {
-        $actor ??= auth()->user();
+        $actor ??= Auth::guard('admin')->user();
         $request ??= request();
 
         AdminActivityLog::query()->create([
-            'user_id' => $actor?->id,
+            'admin_id' => $actor?->id,
             'action' => $action,
             'subject_type' => $subject ? $subject::class : null,
             'subject_id' => $subject?->getKey(),

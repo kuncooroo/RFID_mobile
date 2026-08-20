@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\Admin;
 use App\Support\AdminActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -16,8 +15,7 @@ class StaffController extends Controller
 {
     public function index(): View
     {
-        $staff = User::query()
-            ->whereIn('role', UserRole::staffValues())
+        $staff = Admin::query()
             ->orderByRaw("FIELD(role, 'superadmin', 'admin')")
             ->orderBy('name')
             ->paginate(20);
@@ -34,47 +32,42 @@ class StaffController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:190', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:40', 'unique:users,phone'],
+            'email' => ['required', 'email', 'max:190', 'unique:admins,email'],
+            'phone' => ['nullable', 'string', 'max:40', 'unique:admins,phone'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', Rule::in([UserRole::Admin->value, UserRole::Superadmin->value])],
         ]);
 
-        $user = User::query()->create([
+        $admin = Admin::query()->create([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
-            'password' => Hash::make($data['password']),
+            'password' => $data['password'],
             'role' => $data['role'],
-            'onboarding_completed_at' => now(),
         ]);
 
-        AdminActivityLogger::log('staff.create', "Created staff #{$user->id} {$user->name} ({$user->role->value})", $user);
+        AdminActivityLogger::log('staff.create', "Created staff #{$admin->id} {$admin->name} ({$admin->role->value})", $admin);
 
         return redirect()->route('admin.staff.index')->with('success', 'Staff account created.');
     }
 
-    public function edit(User $staff): View
+    public function edit(Admin $staff): View
     {
-        abort_unless($staff->isStaff(), 404);
-
         return view('admin.staff.edit', ['staff' => $staff]);
     }
 
-    public function update(Request $request, User $staff): RedirectResponse
+    public function update(Request $request, Admin $staff): RedirectResponse
     {
-        abort_unless($staff->isStaff(), 404);
-
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')->ignore($staff->id)],
-            'phone' => ['nullable', 'string', 'max:40', Rule::unique('users', 'phone')->ignore($staff->id)],
+            'email' => ['required', 'email', 'max:190', Rule::unique('admins', 'email')->ignore($staff->id)],
+            'phone' => ['nullable', 'string', 'max:40', Rule::unique('admins', 'phone')->ignore($staff->id)],
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', Rule::in([UserRole::Admin->value, UserRole::Superadmin->value])],
         ]);
 
-        // Prevent demoting yourself out of superadmin accidentally locking everyone out.
-        if ($staff->id === $request->user()->id && $data['role'] !== UserRole::Superadmin->value) {
+        $actor = $request->user('admin');
+        if ($staff->id === $actor?->id && $data['role'] !== UserRole::Superadmin->value) {
             return back()->withErrors(['role' => 'You cannot remove your own superadmin role.']);
         }
 
@@ -86,7 +79,7 @@ class StaffController extends Controller
         ]);
 
         if (! empty($data['password'])) {
-            $staff->password = Hash::make($data['password']);
+            $staff->password = $data['password'];
         }
 
         $staff->save();
@@ -96,11 +89,10 @@ class StaffController extends Controller
         return redirect()->route('admin.staff.index')->with('success', 'Staff account updated.');
     }
 
-    public function destroy(Request $request, User $staff): RedirectResponse
+    public function destroy(Request $request, Admin $staff): RedirectResponse
     {
-        abort_unless($staff->isStaff(), 404);
-
-        if ($staff->id === $request->user()->id) {
+        $actor = $request->user('admin');
+        if ($staff->id === $actor?->id) {
             return back()->withErrors(['staff' => 'You cannot delete your own account.']);
         }
 

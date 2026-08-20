@@ -24,6 +24,16 @@ class RfidRepository extends BaseRepository implements RfidRepositoryInterface
             ->first();
     }
 
+    public function findMemberByCode(string $memberId): ?RfidMember
+    {
+        return $this->query()
+            ->where(function ($q) use ($memberId) {
+                $q->where('member_code', $memberId)
+                    ->orWhere('rfid_uid', $memberId);
+            })
+            ->first();
+    }
+
     public function createVerification(array $attributes): RfidVerification
     {
         return RfidVerification::query()->create($attributes);

@@ -4,7 +4,9 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\Auth\LoginController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PhotoGalleryController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RfidBindController;
 use App\Http\Controllers\Admin\RfidScanLogController;
 use App\Http\Controllers\Admin\StaffController;
@@ -16,17 +18,17 @@ Route::get('/', function () {
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::middleware('guest')->group(function () {
+    Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [LoginController::class, 'show'])->name('login');
         Route::post('/login', [LoginController::class, 'store'])->name('login.store');
     });
 
     Route::post('/logout', [LoginController::class, 'destroy'])
-        ->middleware('auth')
+        ->middleware('auth:admin')
         ->name('logout');
 
     // Shared staff area: admin + superadmin
-    Route::middleware(['auth', 'staff', 'role:admin,superadmin'])->group(function () {
+    Route::middleware(['auth:admin', 'staff', 'role:admin,superadmin'])->group(function () {
         Route::get('/', DashboardController::class)->name('dashboard');
 
         Route::get('/visitors', [VisitorController::class, 'index'])->name('visitors.index');
@@ -43,10 +45,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/gallery', [PhotoGalleryController::class, 'index'])->name('gallery.index');
         Route::get('/gallery/{verification}', [PhotoGalleryController::class, 'show'])->name('gallery.show');
+
+        // Store (mobile e-commerce ops) — skeleton
+        Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     });
 
     // Superadmin-only
-    Route::middleware(['auth', 'staff', 'role:superadmin'])->group(function () {
+    Route::middleware(['auth:admin', 'staff', 'role:superadmin'])->group(function () {
         Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
         Route::get('/staff/create', [StaffController::class, 'create'])->name('staff.create');
         Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');

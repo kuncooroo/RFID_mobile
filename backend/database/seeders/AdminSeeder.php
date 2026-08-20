@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
+use App\Models\Admin;
 use App\Models\Cart;
 use App\Models\Member;
 use App\Models\RfidMember;
@@ -15,14 +16,13 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $superadmin = User::query()->updateOrCreate(
+        $superadmin = Admin::query()->updateOrCreate(
             ['email' => 'superadmin@kutuku.test'],
             [
                 'name' => 'Super Admin',
                 'phone' => '+620000000001',
                 'password' => Hash::make('password'),
                 'role' => UserRole::Superadmin,
-                'onboarding_completed_at' => now(),
             ],
         );
 
@@ -40,14 +40,13 @@ class AdminSeeder extends Seeder
         ];
 
         foreach ($admins as $admin) {
-            User::query()->updateOrCreate(
+            Admin::query()->updateOrCreate(
                 ['email' => $admin['email']],
                 [
                     'name' => $admin['name'],
                     'phone' => $admin['phone'],
                     'password' => Hash::make('password'),
                     'role' => UserRole::Admin,
-                    'onboarding_completed_at' => now(),
                 ],
             );
         }

@@ -38,8 +38,13 @@ Route::prefix('v1')->group(function () {
 
     // Public kiosk endpoints (self-service machines). Optional X-Kiosk-Key.
     Route::prefix('kiosk')->middleware(['kiosk.key', 'throttle:60,1'])->group(function () {
+        Route::get('/health', [KioskController::class, 'health']);
+        Route::post('/rfid/verify', [KioskController::class, 'lookupRfid']);
         Route::post('/verify', [KioskController::class, 'verify']);
+        Route::post('/register', [KioskController::class, 'register'])->middleware('throttle:20,1');
         Route::post('/upload-photo', [KioskController::class, 'uploadPhoto']);
+        Route::post('/presence', [KioskController::class, 'recordPresence']);
+        Route::post('/check-in', [KioskController::class, 'checkIn']);
     });
 
     // Aliases matching the kiosk integration contract.
