@@ -11,8 +11,8 @@ import '../l10n/kiosk_strings.dart';
 import '../models/kiosk_member.dart';
 import '../models/presence.dart';
 import '../services/kiosk_api.dart';
-import '../services/presence_service.dart';
 import '../services/rfid_keyboard_buffer.dart';
+import '../services/visit_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../widgets/kiosk_scaffold.dart';
@@ -22,29 +22,30 @@ import 'register_pages.dart';
 import 'status_pages.dart';
 
 enum KioskStep {
-  welcome,
-  rfidScan,
+  idle,
+  awaitingRfidVisit,
+  awaitingRfidRegister,
   verifyingRfid,
-  memberFound,
-  newMember,
+  rfidUnregistered,
   registrationName,
   registrationContact,
-  registrationConfirm,
-  cameraPrep,
-  cameraCapture,
-  photoPreview,
-  verifyingPresence,
-  checkingIn,
-  awardingPoints,
-  checkInSuccess,
-  pointsEarned,
-  duplicateCheckIn,
+  faceEnrollmentIntro,
+  faceCapture,
+  facePosePreview,
+  faceReview,
+  faceUploading,
+  faceCompleted,
+  visitCreating,
+  visitSuccess,
+  duplicateVisit,
   cameraError,
   sessionTimeout,
   offline,
   error,
   help,
 }
+
+const _enrollPoses = ['front', 'right', 'left'];
 
 class KioskFlowPage extends StatefulWidget {
   const KioskFlowPage({super.key, required this.api});
@@ -64,36 +65,52 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     autoStart: false,
   );
 
-  late final PresenceService _presence = PresenceService(widget.api);
-
+  late final VisitService _visits = VisitService(widget.api);
   Future<void> _cameraGate = Future<void>.value();
 
-  KioskStep _step = KioskStep.welcome;
+  KioskStep _step = KioskStep.idle;
   KioskLang _lang = KioskLang.en;
   String? _errorMessage;
   final bool _rfidReady = true;
   bool _serverOnline = true;
+  bool _rfidLocked = false;
+  bool _registerFlow = false;
 
   RfidLookup? _lookup;
   RegisterDraft? _draft;
   Uint8List? _photoBytes;
   CheckInRecord? _checkIn;
 
+  int _enrollIndex = 0;
+  final Map<String, Uint8List> _enrollPhotos = {};
+  bool _enrollmentForExisting = false;
+
   CameraController? _cameraController;
   Timer? _countdownTimer;
   Timer? _healthTimer;
   Timer? _holdTimer;
   Timer? _sessionTimer;
+  Timer? _returnTimer;
   int _countdown = KioskConfig.countdownSeconds;
+  int _returnSeconds = 5;
 
   KioskStrings get _s => KioskStrings(_lang);
-
   bool get _hardwareReady => _rfidReady && _serverOnline;
+  bool get _awaitingRfid =>
+      _step == KioskStep.awaitingRfidVisit ||
+      _step == KioskStep.awaitingRfidRegister;
+  bool get _listenRfid => _awaitingRfid && _hardwareReady && !_rfidLocked;
+  bool get _onScanSurface => _awaitingRfid;
 
-  bool get _onScanSurface =>
-      _step == KioskStep.welcome || _step == KioskStep.rfidScan;
+  String get _currentPose => _enrollPoses[_enrollIndex.clamp(0, 2)];
 
-  bool get _listenRfid => _onScanSurface && _hardwareReady;
+  (String, String) get _poseCopy {
+    return switch (_currentPose) {
+      'right' => (_s.turnFaceRight, _s.turnFaceRightBody),
+      'left' => (_s.turnFaceLeft, _s.turnFaceLeftBody),
+      _ => (_s.lookStraight, _s.lookStraightBody),
+    };
+  }
 
   @override
   void initState() {
@@ -101,7 +118,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _rfidFocus.requestFocus();
-      unawaited(_startScannerSafely());
+      // RFID only listens after user chooses Tap Member Card / Register.
       _startHealthPoll();
     });
   }
@@ -112,6 +129,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     _healthTimer?.cancel();
     _holdTimer?.cancel();
     _sessionTimer?.cancel();
+    _returnTimer?.cancel();
     _rfidFocus.dispose();
     unawaited(_disposeCamera());
     _scannerController.dispose();
@@ -120,10 +138,11 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
 
   void _bumpSession() {
     _sessionTimer?.cancel();
-    if (_step == KioskStep.welcome ||
+    if (_step == KioskStep.idle ||
         _step == KioskStep.sessionTimeout ||
-        _step == KioskStep.checkInSuccess ||
-        _step == KioskStep.pointsEarned) {
+        _step == KioskStep.visitSuccess ||
+        _step == KioskStep.faceCompleted ||
+        _step == KioskStep.duplicateVisit) {
       return;
     }
     _sessionTimer = Timer(KioskConfig.sessionTimeout, _onSessionTimeout);
@@ -137,21 +156,32 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
   Future<void> _timeoutSession() async {
     _countdownTimer?.cancel();
     _holdTimer?.cancel();
+    _returnTimer?.cancel();
     await _disposeCamera();
     await _stopScannerFully();
     if (!mounted) return;
     setState(() {
       _step = KioskStep.sessionTimeout;
-      _lookup = null;
-      _draft = null;
-      _photoBytes = null;
-      _checkIn = null;
-      _errorMessage = null;
+      _clearSessionFields();
     });
     _holdTimer = Timer(KioskConfig.timeoutHold, () {
       if (!mounted) return;
       unawaited(_goIdle());
     });
+  }
+
+  void _clearSessionFields() {
+    _lookup = null;
+    _draft = null;
+    _photoBytes = null;
+    _checkIn = null;
+    _enrollIndex = 0;
+    _enrollPhotos.clear();
+    _errorMessage = null;
+    _enrollmentForExisting = false;
+    _registerFlow = false;
+    _rfidLocked = false;
+    _countdown = KioskConfig.countdownSeconds;
   }
 
   void _startHealthPoll() {
@@ -234,19 +264,10 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     }
   }
 
-  Future<void> _openScan() async {
-    if (!_serverOnline) {
-      setState(() => _step = KioskStep.offline);
-      return;
-    }
-    setState(() => _step = KioskStep.rfidScan);
-    _bumpSession();
-    await _startScannerSafely();
-    _rfidFocus.requestFocus();
-  }
-
   Future<void> _handleDetectedCode(String code) async {
-    if (!_onScanSurface || !_hardwareReady) return;
+    if (!_awaitingRfid || !_hardwareReady || _rfidLocked) return;
+    _rfidLocked = true;
+    final registerFlow = _registerFlow;
     setState(() {
       _step = KioskStep.verifyingRfid;
       _errorMessage = null;
@@ -264,22 +285,27 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
 
       switch (lookup.resultCode) {
         case RfidLookupCode.memberFound:
-          setState(() {
-            _lookup = lookup;
-            _step = KioskStep.memberFound;
-          });
-          _bumpSession();
-          _holdTimer?.cancel();
-          _holdTimer = Timer(KioskConfig.memberFoundHold, () {
-            if (!mounted || _step != KioskStep.memberFound) return;
-            setState(() => _step = KioskStep.cameraPrep);
-          });
+          setState(() => _lookup = lookup);
+          if (registerFlow) {
+            _showError(_s.cardAlreadyRegistered);
+            return;
+          }
+          if (lookup.needsFaceEnrollment) {
+            _enrollmentForExisting = true;
+            setState(() => _step = KioskStep.faceEnrollmentIntro);
+            _bumpSession();
+          } else {
+            unawaited(_recordVisit());
+          }
         case RfidLookupCode.rfidNotRegistered:
-          setState(() {
-            _lookup = lookup;
-            _step = KioskStep.newMember;
-          });
-          _bumpSession();
+          setState(() => _lookup = lookup);
+          if (registerFlow) {
+            setState(() => _step = KioskStep.registrationName);
+            _bumpSession();
+          } else {
+            setState(() => _step = KioskStep.rfidUnregistered);
+            _bumpSession();
+          }
         case RfidLookupCode.rfidInactive:
           _showError(_s.rfidInactive);
         case RfidLookupCode.rfidInvalid:
@@ -292,6 +318,45 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     } catch (e) {
       _showError(_customerMessage(e));
     }
+  }
+
+  Future<void> _startVisitScan() async {
+    if (!_serverOnline) {
+      setState(() => _step = KioskStep.offline);
+      return;
+    }
+    setState(() {
+      _registerFlow = false;
+      _lookup = null;
+      _step = KioskStep.awaitingRfidVisit;
+    });
+    _bumpSession();
+    await _startScannerSafely();
+    _rfidFocus.requestFocus();
+  }
+
+  Future<void> _startRegisterRfidScan() async {
+    if (!_serverOnline) {
+      setState(() => _step = KioskStep.offline);
+      return;
+    }
+    setState(() {
+      _registerFlow = true;
+      _step = KioskStep.awaitingRfidRegister;
+    });
+    _bumpSession();
+    await _startScannerSafely();
+    _rfidFocus.requestFocus();
+  }
+
+  void _beginEnrollment() {
+    setState(() {
+      _enrollIndex = 0;
+      _enrollPhotos.clear();
+      _photoBytes = null;
+      _step = KioskStep.faceEnrollmentIntro;
+    });
+    _bumpSession();
   }
 
   String _customerMessage(Object error) {
@@ -317,9 +382,11 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
   void _showError(String message, {bool camera = false}) {
     if (!mounted) return;
     _holdTimer?.cancel();
+    _returnTimer?.cancel();
     setState(() {
       _errorMessage = message;
       _step = camera ? KioskStep.cameraError : KioskStep.error;
+      _rfidLocked = false;
     });
     _bumpSession();
   }
@@ -328,37 +395,106 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     _countdownTimer?.cancel();
     _holdTimer?.cancel();
     _sessionTimer?.cancel();
+    _returnTimer?.cancel();
     await _disposeCamera();
     if (!mounted) return;
     setState(() {
-      _step = KioskStep.welcome;
-      _lookup = null;
-      _draft = null;
-      _photoBytes = null;
-      _checkIn = null;
-      _errorMessage = null;
-      _countdown = KioskConfig.countdownSeconds;
+      _step = KioskStep.idle;
+      _clearSessionFields();
     });
-    await _startScannerSafely();
+    await _stopScannerFully();
     _rfidFocus.requestFocus();
   }
 
   Future<void> _retryFromError() async {
     if (_photoBytes != null && _lookup != null) {
-      setState(() => _step = KioskStep.photoPreview);
+      setState(() => _step = KioskStep.facePosePreview);
       _bumpSession();
       return;
     }
+    if (_registerFlow && _lookup != null && !_lookup!.isRegistered) {
+      setState(() => _step = KioskStep.registrationName);
+      _bumpSession();
+      return;
+    }
+    if (_registerFlow) {
+      unawaited(_startRegisterRfidScan());
+      return;
+    }
     if (_lookup != null && _lookup!.isRegistered) {
-      setState(() => _step = KioskStep.cameraPrep);
+      if (_lookup!.needsFaceEnrollment) {
+        _beginEnrollment();
+        return;
+      }
+      unawaited(_recordVisit());
+      return;
+    }
+    if (_lookup != null && !_lookup!.isRegistered) {
+      setState(() => _step = KioskStep.rfidUnregistered);
       _bumpSession();
       return;
     }
     await _goIdle();
   }
 
+  Future<void> _recordVisit() async {
+    final lookup = _lookup;
+    if (lookup == null || !lookup.isRegistered) {
+      _showError(_s.genericError);
+      return;
+    }
+
+    setState(() => _step = KioskStep.visitCreating);
+    _bumpSession();
+
+    try {
+      final checkIn = await _visits.recordVisit(rfidUid: lookup.rfidUid);
+      if (!mounted) return;
+      if (!checkIn.succeeded) {
+        _showError(_s.checkInFailed);
+        return;
+      }
+
+      setState(() => _checkIn = checkIn);
+
+      if (checkIn.duplicate) {
+        setState(() {
+          _step = KioskStep.duplicateVisit;
+          _returnSeconds = 4;
+        });
+        _armReturnCountdown(KioskStep.duplicateVisit, seconds: 4);
+        return;
+      }
+
+      setState(() {
+        _step = KioskStep.visitSuccess;
+        _returnSeconds = 5;
+      });
+      _armReturnCountdown(KioskStep.visitSuccess, seconds: 5);
+    } catch (e) {
+      _showError(_customerMessage(e));
+    }
+  }
+
+  void _armReturnCountdown(KioskStep expected, {required int seconds}) {
+    _returnTimer?.cancel();
+    _returnSeconds = seconds;
+    _returnTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _step != expected) {
+        timer.cancel();
+        return;
+      }
+      if (_returnSeconds <= 1) {
+        timer.cancel();
+        unawaited(_goIdle());
+        return;
+      }
+      setState(() => _returnSeconds -= 1);
+    });
+  }
+
   Future<void> _startCameraCapture() async {
-    setState(() => _step = KioskStep.cameraCapture);
+    setState(() => _step = KioskStep.faceCapture);
     _bumpSession();
     try {
       await _withCameraGate(() async {
@@ -421,7 +557,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       if (!mounted) return;
       setState(() {
         _photoBytes = bytes;
-        _step = KioskStep.photoPreview;
+        _step = KioskStep.facePosePreview;
       });
       _bumpSession();
     } catch (_) {
@@ -429,87 +565,111 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     }
   }
 
-  Future<void> _usePhoto() async {
-    final lookup = _lookup;
+  Future<void> _useEnrollmentPhoto() async {
     final bytes = _photoBytes;
-    if (lookup == null || bytes == null || bytes.isEmpty) {
+    if (bytes == null || bytes.isEmpty) {
       _showError(_s.genericError);
       return;
     }
 
-    try {
-      var bound = lookup;
-      if (!bound.isRegistered) {
-        final draft = _draft;
-        if (draft == null) {
-          _showError(_s.genericError);
-          return;
-        }
-        setState(() => _step = KioskStep.verifyingPresence);
-        bound = await widget.api.registerVisitor(
-          rfidUid: lookup.rfidUid,
-          name: draft.name,
-          email: draft.email,
-          phone: draft.phone,
-        );
-        if (!mounted) return;
-        setState(() => _lookup = bound);
-      }
+    _enrollPhotos[_currentPose] = bytes;
 
-      setState(() => _step = KioskStep.verifyingPresence);
-      final presence = await _presence.submitCapture(
-        rfidUid: bound.rfidUid,
-        photoBytes: bytes,
-      );
-
-      if (!mounted) return;
-      setState(() => _step = KioskStep.checkingIn);
-      final checkIn = await _presence.completeCheckIn(
-        presence: presence,
-        rfidUid: bound.rfidUid,
-      );
-
-      if (!mounted) return;
-      if (!checkIn.succeeded) {
-        _showError(_s.checkInFailed);
-        return;
-      }
-
-      setState(() => _checkIn = checkIn);
-
-      if (checkIn.alreadyCheckedInToday && checkIn.pointsAwarded == 0) {
-        setState(() => _step = KioskStep.duplicateCheckIn);
-        _bumpSession();
-        return;
-      }
-
-      setState(() => _step = KioskStep.awardingPoints);
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      setState(() => _step = KioskStep.checkInSuccess);
-      _holdTimer?.cancel();
-      _holdTimer = Timer(const Duration(seconds: 6), () {
-        if (!mounted || _step != KioskStep.checkInSuccess) return;
-        setState(() => _step = KioskStep.pointsEarned);
-        _armIdleFromPoints();
+    if (_enrollIndex < _enrollPoses.length - 1) {
+      setState(() {
+        _enrollIndex += 1;
+        _photoBytes = null;
+        _step = KioskStep.faceCapture;
       });
+      _bumpSession();
+      unawaited(_startCameraCapture());
+      return;
+    }
+
+    setState(() {
+      _photoBytes = null;
+      _step = KioskStep.faceReview;
+    });
+    _bumpSession();
+  }
+
+  Future<void> _uploadEnrollment() async {
+    final lookup = _lookup;
+    final front = _enrollPhotos['front'];
+    final right = _enrollPhotos['right'];
+    final left = _enrollPhotos['left'];
+    if (lookup == null || front == null || right == null || left == null) {
+      _showError(_s.genericError);
+      return;
+    }
+
+    setState(() => _step = KioskStep.faceUploading);
+    _bumpSession();
+
+    try {
+      await widget.api.enrollFace(
+        rfidUid: lookup.rfidUid,
+        front: front,
+        right: right,
+        left: left,
+      );
+
+      if (!mounted) return;
+      await _disposeCamera();
+      setState(() {
+        _step = KioskStep.faceCompleted;
+        _enrollPhotos.clear();
+        _photoBytes = null;
+        _returnSeconds = 4;
+      });
+      _armReturnCountdown(KioskStep.faceCompleted, seconds: 4);
     } catch (e) {
       _showError(_customerMessage(e));
     }
   }
 
-  void _armIdleFromPoints() {
-    _holdTimer?.cancel();
-    _holdTimer = Timer(KioskConfig.successHold, () {
-      if (!mounted || _step != KioskStep.pointsEarned) return;
-      unawaited(_goIdle());
-    });
+  Future<void> _createAccountThenEnroll() async {
+    final lookup = _lookup;
+    final draft = _draft;
+    if (lookup == null || draft == null) {
+      _showError(_s.genericError);
+      return;
+    }
+
+    setState(() => _step = KioskStep.faceUploading);
+    _bumpSession();
+
+    try {
+      final bound = await widget.api.registerVisitor(
+        rfidUid: lookup.rfidUid,
+        name: draft.name,
+        email: draft.email,
+        phone: draft.phone,
+      );
+      if (!mounted) return;
+      setState(() {
+        _lookup = bound;
+        _enrollmentForExisting = false;
+      });
+      _beginEnrollment();
+    } catch (e) {
+      _showError(_customerMessage(e));
+    }
   }
 
-  DateTime? _checkedInAt() {
-    final raw = _checkIn?.checkedInAt;
-    if (raw == null || raw.isEmpty) return DateTime.now();
-    return DateTime.tryParse(raw) ?? DateTime.now();
+  Future<void> _disposeCamera() {
+    return _withCameraGate(_disposeCameraUnlocked);
+  }
+
+  Future<void> _disposeCameraUnlocked() async {
+    final cam = _cameraController;
+    _cameraController = null;
+    if (cam == null) return;
+    try {
+      await cam.dispose();
+    } catch (e) {
+      debugPrint('[kiosk] camera dispose: $e');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 350));
   }
 
   @override
@@ -523,6 +683,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
         behavior: HitTestBehavior.translucent,
         child: Scaffold(
           backgroundColor: AppColors.background,
+          resizeToAvoidBottomInset: true,
           body: _buildStep(),
         ),
       ),
@@ -531,44 +692,41 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
 
   Widget _buildStep() {
     switch (_step) {
-      case KioskStep.welcome:
+      case KioskStep.idle:
         return WelcomePage(
           strings: _s,
           lang: _lang,
           onLangChanged: (lang) => setState(() => _lang = lang),
           serverOnline: _serverOnline,
-          onCheckIn: () => unawaited(_openScan()),
-          onRegister: () => unawaited(_openScan()),
+          onTapMemberCard: () => unawaited(_startVisitScan()),
+          onRegister: () => unawaited(_startRegisterRfidScan()),
           onHelp: () => setState(() => _step = KioskStep.help),
         );
-      case KioskStep.rfidScan:
+      case KioskStep.awaitingRfidVisit:
+      case KioskStep.awaitingRfidRegister:
       case KioskStep.verifyingRfid:
-        return RfidScanPage(
+        return RfidAwaitPage(
           strings: _s,
-          scannerController: _scannerController,
-          onDetect: _onQrDetect,
-          showScanner: _step == KioskStep.rfidScan && _hardwareReady,
-          processing: _step == KioskStep.verifyingRfid,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
+          serverOnline: _serverOnline,
+          verifying: _step == KioskStep.verifyingRfid,
+          registerFlow: _registerFlow,
           onCancel: () => unawaited(_goIdle()),
           onHelp: () => setState(() => _step = KioskStep.help),
-          serverOnline: _serverOnline,
+          scannerController: _scannerController,
+          onDetect: _onQrDetect,
+          showScanner: _awaitingRfid && _hardwareReady,
         );
-      case KioskStep.memberFound:
-        return RegisteredPage(
-          lookup: _lookup!,
-          strings: _s,
-          onContinue: () {
-            _holdTimer?.cancel();
-            setState(() => _step = KioskStep.cameraPrep);
-            _bumpSession();
-          },
-        );
-      case KioskStep.newMember:
+      case KioskStep.rfidUnregistered:
         return UnregisteredPage(
           strings: _s,
           onRegister: () {
             _rfidFocus.unfocus();
-            setState(() => _step = KioskStep.registrationName);
+            setState(() {
+              _registerFlow = true;
+              _step = KioskStep.registrationName;
+            });
             _bumpSession();
           },
           onCancel: () => unawaited(_goIdle()),
@@ -602,85 +760,84 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
                 email: email,
                 phone: phone,
               );
-              _step = KioskStep.registrationConfirm;
             });
-            _bumpSession();
+            unawaited(_createAccountThenEnroll());
           },
           onBack: () {
             setState(() => _step = KioskStep.registrationName);
             _bumpSession();
           },
         );
-      case KioskStep.registrationConfirm:
-        return RegisterConfirmPage(
+      case KioskStep.faceEnrollmentIntro:
+        return FaceEnrollmentIntroPage(
           strings: _s,
-          name: _draft?.name ?? '',
-          email: _draft?.email,
-          phone: _draft?.phone,
-          rfidUid: _lookup?.rfidUid ?? '',
-          onCreate: () {
-            setState(() => _step = KioskStep.cameraPrep);
-            _bumpSession();
-          },
-          onBack: () {
-            setState(() => _step = KioskStep.registrationContact);
-            _bumpSession();
-          },
+          requiredExisting: _enrollmentForExisting,
+          onStart: () => unawaited(_startCameraCapture()),
         );
-      case KioskStep.cameraPrep:
-        return CameraPrepPage(
-          strings: _s,
-          onContinue: () => unawaited(_startCameraCapture()),
-        );
-      case KioskStep.cameraCapture:
+      case KioskStep.faceCapture:
+        final copy = _poseCopy;
         return _CameraCaptureView(
           strings: _s,
           controller: _cameraController,
           countdown: _countdown,
+          title: copy.$1,
+          instruction: copy.$2,
+          poseIndex: _enrollIndex,
+          completed: _enrollPhotos.keys.toSet(),
         );
-      case KioskStep.photoPreview:
+      case KioskStep.facePosePreview:
         return PhotoPreviewPage(
           strings: _s,
           photoBytes: _photoBytes!,
-          onUsePhoto: () => unawaited(_usePhoto()),
+          onUsePhoto: () => unawaited(_useEnrollmentPhoto()),
           onRetake: () => unawaited(_startCameraCapture()),
         );
-      case KioskStep.verifyingPresence:
-        return ProgressStatusPage(
-          title: _s.confirmingPresence,
-          message: _s.pleaseWait,
-        );
-      case KioskStep.checkingIn:
-        return ProgressStatusPage(
-          title: _s.checkingIn,
-          message: _s.pleaseWait,
-        );
-      case KioskStep.awardingPoints:
-        return ProgressStatusPage(
-          title: _s.awardingPoints,
-          message: _s.pleaseWait,
-        );
-      case KioskStep.checkInSuccess:
-        return SuccessPage(
+      case KioskStep.faceReview:
+        return FaceReviewPage(
           strings: _s,
-          name: _checkIn?.memberName ?? _lookup?.user?.name ?? '',
-          checkedInAt: _checkedInAt(),
-          onContinue: () {
-            _holdTimer?.cancel();
-            setState(() => _step = KioskStep.pointsEarned);
-            _armIdleFromPoints();
+          front: _enrollPhotos['front']!,
+          right: _enrollPhotos['right']!,
+          left: _enrollPhotos['left']!,
+          onComplete: () => unawaited(_uploadEnrollment()),
+          onRetake: () {
+            setState(() {
+              _enrollIndex = 0;
+              _enrollPhotos.clear();
+              _photoBytes = null;
+            });
+            unawaited(_startCameraCapture());
           },
         );
-      case KioskStep.pointsEarned:
-        return PointsPage(
+      case KioskStep.faceUploading:
+        return ProgressStatusPage(
+          title: _s.savingIdentity,
+          message: _s.pleaseWait,
+        );
+      case KioskStep.faceCompleted:
+        return EnrollmentCompletePage(
           strings: _s,
-          pointsAwarded: _checkIn?.pointsAwarded ?? 0,
-          pointsBalance: _checkIn?.pointsBalance ?? 0,
+          countdown: _returnSeconds,
           onDone: () => unawaited(_goIdle()),
         );
-      case KioskStep.duplicateCheckIn:
+      case KioskStep.visitCreating:
+        return ProgressStatusPage(
+          title: _s.recordingVisit,
+          message: _s.pleaseWait,
+        );
+      case KioskStep.visitSuccess:
+        return VisitSuccessPage(
+          strings: _s,
+          name: _checkIn?.memberName ?? _lookup?.user?.name ?? '',
+          pointsAwarded: _checkIn?.pointsAwarded ?? 0,
+          pointsBalance: _checkIn?.pointsBalance ?? 0,
+          countdown: _returnSeconds,
+          onDone: () => unawaited(_goIdle()),
+        );
+      case KioskStep.duplicateVisit:
         return DuplicateCheckInPage(
           strings: _s,
+          name: _checkIn?.memberName ?? _lookup?.user?.name,
+          countdown: _returnSeconds,
           onHome: () => unawaited(_goIdle()),
         );
       case KioskStep.cameraError:
@@ -700,7 +857,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
           onRetry: () async {
             await _pollHealth();
             if (_serverOnline) {
-              await _openScan();
+              await _goIdle();
             }
           },
           onHome: () => unawaited(_goIdle()),
@@ -716,22 +873,6 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
         return HelpPage(strings: _s, onBack: () => unawaited(_goIdle()));
     }
   }
-
-  Future<void> _disposeCamera() {
-    return _withCameraGate(_disposeCameraUnlocked);
-  }
-
-  Future<void> _disposeCameraUnlocked() async {
-    final cam = _cameraController;
-    _cameraController = null;
-    if (cam == null) return;
-    try {
-      await cam.dispose();
-    } catch (e) {
-      debugPrint('[kiosk] camera dispose: $e');
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-  }
 }
 
 class _CameraCaptureView extends StatelessWidget {
@@ -739,11 +880,19 @@ class _CameraCaptureView extends StatelessWidget {
     required this.strings,
     required this.controller,
     required this.countdown,
+    required this.title,
+    required this.instruction,
+    required this.poseIndex,
+    required this.completed,
   });
 
   final KioskStrings strings;
   final CameraController? controller;
   final int countdown;
+  final String title;
+  final String instruction;
+  final int poseIndex;
+  final Set<String> completed;
 
   @override
   Widget build(BuildContext context) {
@@ -754,10 +903,23 @@ class _CameraCaptureView extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            strings.takePhoto,
+            title,
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: Colors.white,
                 ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            instruction,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          PoseProgressBar(
+            strings: strings,
+            currentIndex: poseIndex,
+            completed: completed,
           ),
           const SizedBox(height: 16),
           Expanded(

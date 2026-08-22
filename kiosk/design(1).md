@@ -1,17 +1,18 @@
 # Kiosk RFID — Portrait Responsive Design System
 
+> **Source of truth update (Aug 2026):** Camera is used **only** for one-time face enrollment (Front / Right / Left). Regular RFID visits do **not** open the camera or upload photos.
+
 ## 1. Project Overview
 
 Design specification for a **portrait, responsive, touchscreen RFID self-service kiosk**.
 
 The kiosk is the physical terminal used by customers to:
 
-1. Identify themselves using an RFID card.
+1. Identify themselves using an RFID card (primary interaction).
 2. Register when the RFID card is not yet associated with a member.
-3. Capture a face photo to confirm physical presence.
-4. Complete a check-in.
-5. Receive loyalty points when the check-in is valid.
-6. Return automatically to the welcome screen.
+3. Complete **one-time face enrollment** (Front, Right, Left) as member identity.
+4. On later visits: RFID → visit → loyalty points (no camera).
+5. Return automatically to the welcome / idle screen.
 
 The kiosk is **not an admin dashboard** and should not look like a traditional enterprise dashboard.
 
@@ -27,6 +28,7 @@ The visual direction is inspired by the provided reference:
 - minimal illustrations
 - clear primary actions
 - touchscreen-first interaction
+- **RFID-first welcome** (no primary "Check In" button)
 
 The interface should feel like a polished consumer self-service terminal rather than an AI-generated dashboard.
 
@@ -36,7 +38,7 @@ The interface should feel like a polished consumer self-service terminal rather 
 
 ## Product Type
 
-RFID Loyalty & Presence Kiosk
+RFID Loyalty & Identity Enrollment Kiosk
 
 ## Primary User
 
@@ -46,47 +48,72 @@ Customers / visitors using a physical RFID member card.
 
 - Portrait touchscreen
 - RFID reader
-- Camera
+- Camera (enrollment only)
 - Speaker
 - Network connection
 - Optional QR scanner
 
-## Primary Flow
+## Primary Flows
+
+### Returning member (most common)
 
 ```text
-WELCOME
+Welcome (IDLE — RFID ready)
   ↓
-RFID SCAN
+RFID Tap
   ↓
-IDENTIFY MEMBER
-  ├── Existing Member
-  │      ↓
-  │   CAMERA CAPTURE
-  │      ↓
-  │   PHOTO CONFIRMATION
-  │      ↓
-  │   PRESENCE VERIFICATION
-  │      ↓
-  │   CHECK-IN
-  │      ↓
-  │   POINTS EARNED
-  │      ↓
-  │   SUCCESS
-  │
-  └── New / Unregistered RFID
-         ↓
-      REGISTRATION
-         ↓
-      CAMERA CAPTURE
-         ↓
-      CONFIRMATION
-         ↓
-      RFID BINDING
-         ↓
-      CHECK-IN
-         ↓
-      SUCCESS
+Verify RFID
+  ↓
+Member Found + face_enrolled
+  ↓
+Create Visit (POST /kiosk/visit)
+  ↓
+Welcome Back + Points
+  ↓
+Welcome
 ```
+
+### New member
+
+```text
+Welcome
+  ↓
+RFID Tap
+  ↓
+RFID Not Registered
+  ↓
+Registration (name + email/phone)
+  ↓
+POST /kiosk/register (bind RFID)
+  ↓
+Face Enrollment Intro
+  ↓
+Front → Right → Left
+  ↓
+Review → POST /kiosk/face-enrollment
+  ↓
+Enrollment Success
+  ↓
+Welcome
+```
+
+### Member without face enrollment
+
+```text
+Welcome
+  ↓
+RFID Tap
+  ↓
+Member Found + needs_face_enrollment
+  ↓
+Face Enrollment (Front / Right / Left)
+  ↓
+Upload
+  ↓
+Welcome
+```
+
+**Important:** Regular visits never capture photos. Face photos are identity data in `user_face_enrollments`, not visit artifacts.
 
 ---
 

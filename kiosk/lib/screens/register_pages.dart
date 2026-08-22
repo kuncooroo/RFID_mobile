@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../l10n/kiosk_strings.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import '../widgets/kiosk_card.dart';
 import '../widgets/kiosk_scaffold.dart';
 import '../widgets/primary_button.dart';
@@ -26,7 +27,8 @@ class RegisterNamePage extends StatefulWidget {
 }
 
 class _RegisterNamePageState extends State<RegisterNamePage> {
-  late final TextEditingController _name = TextEditingController(text: widget.initial);
+  late final TextEditingController _name =
+      TextEditingController(text: widget.initial);
   String? _error;
 
   @override
@@ -47,35 +49,45 @@ class _RegisterNamePageState extends State<RegisterNamePage> {
   @override
   Widget build(BuildContext context) {
     final s = widget.strings;
-    return KioskScaffold(
-      child: Column(
+    return KioskPageShell(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s.createAccount, style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 12),
-          Text(s.whatName, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 32),
+          Text(
+            s.createProfile,
+            style: Theme.of(context).textTheme.headlineLarge,
+          ),
+          SizedBox(height: AppSpacing.vGap(context, 12, min: 8, max: 12)),
+          Text(
+            s.createProfileBody,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          SizedBox(height: AppSpacing.vGap(context, 32, min: 20, max: 32)),
           TextField(
             controller: _name,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+            textInputAction: TextInputAction.done,
+            style: TextStyle(
+              fontSize: AppSpacing.scale(context, 22).clamp(18.0, 22.0),
+              fontWeight: FontWeight.w500,
+            ),
             decoration: InputDecoration(
               hintText: s.fullName,
               errorText: _error,
             ),
             onSubmitted: (_) => _next(),
           ),
-          const Spacer(),
-          Text(
-            s.stepOf(1, 3),
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 16),
-          PrimaryButton(label: s.continueLabel, onPressed: _next),
-          GhostButton(label: s.cancel, onPressed: widget.onCancel),
         ],
+      ),
+      footer: KioskActionArea(
+        leading: Text(
+          s.stepOf(1, 2),
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        primary: PrimaryButton(label: s.continueCta, onPressed: _next),
+        secondary: GhostButton(label: s.cancel, onPressed: widget.onCancel),
       ),
     );
   }
@@ -130,46 +142,63 @@ class _RegisterContactPageState extends State<RegisterContactPage> {
       setState(() => _error = widget.strings.emailInvalid);
       return;
     }
-    widget.onContinue(email.isEmpty ? null : email, phone.isEmpty ? null : phone);
+    widget.onContinue(
+      email.isEmpty ? null : email,
+      phone.isEmpty ? null : phone,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final s = widget.strings;
-    return KioskScaffold(
-      child: Column(
+    return KioskPageShell(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s.contactInfo, style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 12),
-          Text(s.whatPhone, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 32),
+          Text(
+            s.createProfile,
+            style: Theme.of(context).textTheme.headlineLarge,
+          ),
+          SizedBox(height: AppSpacing.vGap(context, 12, min: 8, max: 12)),
+          Text(
+            s.contactHint,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          SizedBox(height: AppSpacing.vGap(context, 32, min: 20, max: 32)),
           TextField(
             controller: _phone,
             keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]')),
             ],
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: AppSpacing.scale(context, 22).clamp(18.0, 22.0),
+              fontWeight: FontWeight.w500,
+            ),
             decoration: InputDecoration(hintText: s.phone, errorText: _error),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(fontSize: 20),
+            textInputAction: TextInputAction.done,
+            style: TextStyle(
+              fontSize: AppSpacing.scale(context, 20).clamp(16.0, 20.0),
+            ),
             decoration: InputDecoration(hintText: s.email),
+            onSubmitted: (_) => _next(),
           ),
-          const Spacer(),
-          Text(
-            s.stepOf(2, 3),
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 16),
-          PrimaryButton(label: s.continueLabel, onPressed: _next),
-          GhostButton(label: s.back, onPressed: widget.onBack),
         ],
+      ),
+      footer: KioskActionArea(
+        leading: Text(
+          s.stepOf(2, 2),
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        primary: PrimaryButton(label: s.continueCta, onPressed: _next),
+        secondary: GhostButton(label: s.back, onPressed: widget.onBack),
       ),
     );
   }
@@ -203,12 +232,15 @@ class RegisterConfirmPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = strings;
-    return KioskScaffold(
-      child: Column(
+    return KioskPageShell(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s.reviewInfo, style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 28),
+          Text(
+            s.reviewInfo,
+            style: Theme.of(context).textTheme.headlineLarge,
+          ),
+          SizedBox(height: AppSpacing.vGap(context, 28, min: 16, max: 28)),
           KioskCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,16 +255,16 @@ class RegisterConfirmPage extends StatelessWidget {
               ],
             ),
           ),
-          const Spacer(),
-          Text(
-            s.stepOf(3, 3),
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 16),
-          PrimaryButton(label: s.createAccountCta, onPressed: onCreate),
-          GhostButton(label: s.back, onPressed: onBack),
         ],
+      ),
+      footer: KioskActionArea(
+        leading: Text(
+          s.stepOf(2, 2),
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        primary: PrimaryButton(label: s.continueCta, onPressed: onCreate),
+        secondary: GhostButton(label: s.back, onPressed: onBack),
       ),
     );
   }
@@ -241,9 +273,15 @@ class RegisterConfirmPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }

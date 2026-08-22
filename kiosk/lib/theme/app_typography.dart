@@ -5,11 +5,11 @@ import 'app_spacing.dart';
 
 abstract final class AppTypography {
   static TextTheme textTheme(BuildContext context) {
-    final display = AppSpacing.scale(context, 48);
-    final heading = AppSpacing.scale(context, 32);
-    final subhead = AppSpacing.scale(context, 22);
-    final body = AppSpacing.scale(context, 18);
-    final caption = AppSpacing.scale(context, 14);
+    final display = AppSpacing.scale(context, 48).clamp(32.0, 52.0).toDouble();
+    final heading = AppSpacing.scale(context, 32).clamp(24.0, 36.0).toDouble();
+    final subhead = AppSpacing.scale(context, 22).clamp(18.0, 24.0).toDouble();
+    final body = AppSpacing.scale(context, 18).clamp(15.0, 20.0).toDouble();
+    final caption = AppSpacing.scale(context, 14).clamp(12.0, 15.0).toDouble();
 
     return TextTheme(
       displayLarge: TextStyle(

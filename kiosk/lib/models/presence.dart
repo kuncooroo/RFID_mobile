@@ -44,6 +44,7 @@ class CheckInRecord {
     required this.pointsAwarded,
     required this.pointsBalance,
     required this.alreadyCheckedInToday,
+    this.duplicate = false,
     this.checkedInAt,
     this.memberName,
     this.memberCode,
@@ -58,6 +59,7 @@ class CheckInRecord {
   final int pointsAwarded;
   final int pointsBalance;
   final bool alreadyCheckedInToday;
+  final bool duplicate;
   final String? checkedInAt;
   final String? memberName;
   final String? memberCode;
@@ -65,18 +67,32 @@ class CheckInRecord {
   bool get succeeded => status.toUpperCase() == 'SUCCESS';
 
   factory CheckInRecord.fromJson(Map<String, dynamic> json) {
+    final points = json['points'];
+    var awarded = (json['points_awarded'] as num?)?.toInt();
+    var balance = (json['points_balance'] as num?)?.toInt();
+    if (points is Map) {
+      awarded ??= (points['earned'] as num?)?.toInt();
+      balance ??= (points['balance'] as num?)?.toInt();
+    }
+
+    final resultCode = json['result_code']?.toString().toUpperCase() ?? '';
+    final duplicate = json['duplicate'] == true ||
+        resultCode == 'ALREADY_CHECKED_IN';
+
     return CheckInRecord(
       id: (json['id'] as num).toInt(),
       userId: (json['user_id'] as num).toInt(),
       rfidId: (json['rfid_id'] as num?)?.toInt() ?? 0,
-      locationId: (json['location_id'] as num).toInt(),
-      presenceId: (json['presence_id'] as num).toInt(),
+      locationId: (json['location_id'] as num?)?.toInt() ?? 0,
+      presenceId: (json['presence_id'] as num?)?.toInt() ?? 0,
       status: json['status']?.toString() ?? 'FAIL',
-      pointsAwarded: (json['points_awarded'] as num?)?.toInt() ?? 0,
-      pointsBalance: (json['points_balance'] as num?)?.toInt() ?? 0,
-      alreadyCheckedInToday: json['already_checked_in_today'] == true,
+      pointsAwarded: awarded ?? 0,
+      pointsBalance: balance ?? 0,
+      alreadyCheckedInToday: json['already_checked_in_today'] == true || duplicate,
+      duplicate: duplicate,
       checkedInAt: json['checked_in_at']?.toString(),
-      memberName: json['member_name']?.toString(),
+      memberName: json['member_name']?.toString() ??
+          (json['user'] is Map ? json['user']['name']?.toString() : null),
       memberCode: json['member_code']?.toString(),
     );
   }

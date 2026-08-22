@@ -38,10 +38,10 @@
                 <tr>
                     <td>{{ ($visitors->firstItem() ?? 0) + $loop->index }}</td>
                     <td>
-                        <div class="avatar-chip">
+                        <a href="{{ route('admin.visitors.show', $visitor) }}" class="avatar-chip" style="text-decoration: none; color: inherit;">
                             <span class="dot">{{ strtoupper(substr($visitor->name, 0, 1)) }}</span>
                             <strong>{{ $visitor->name }}</strong>
-                        </div>
+                        </a>
                     </td>
                     <td>
                         <div>{{ $visitor->email ?? '—' }}</div>
@@ -71,6 +71,7 @@
                         @endif
                     </td>
                     <td class="actions">
+                        <a class="btn secondary sm" href="{{ route('admin.visitors.show', $visitor) }}">History</a>
                         <a class="btn secondary sm" href="{{ route('admin.visitors.edit', $visitor) }}">Edit</a>
                         <form method="POST" action="{{ route('admin.visitors.destroy', $visitor) }}" onsubmit="return confirm('Delete this visitor?')">
                             @csrf

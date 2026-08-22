@@ -12,6 +12,7 @@
         @include('admin.visitors._form')
         <div class="form-actions">
             <button class="btn" type="submit">Save changes</button>
+            <a class="btn secondary" href="{{ route('admin.visitors.show', $visitor) }}">Visit history</a>
             <a class="btn secondary" href="{{ route('admin.visitors.index') }}">Back to list</a>
             <a class="btn secondary" href="{{ route('admin.rfid.bind', ['user_id' => $visitor->id]) }}">Open RFID binder</a>
         </div>

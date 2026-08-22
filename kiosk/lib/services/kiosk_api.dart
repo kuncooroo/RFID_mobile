@@ -121,6 +121,86 @@ class KioskApi {
     }
   }
 
+  Future<void> enrollFace({
+    required String rfidUid,
+    required List<int> front,
+    required List<int> right,
+    required List<int> left,
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'rfid_uid': rfidUid,
+        'front': MultipartFile.fromBytes(
+          front,
+          filename: 'front.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+        'right': MultipartFile.fromBytes(
+          right,
+          filename: 'right.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+        'left': MultipartFile.fromBytes(
+          left,
+          filename: 'left.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      });
+      final response = await _dio.post<Map<String, dynamic>>(
+        KioskConfig.faceEnrollmentPath,
+        data: form,
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw KioskApiException(
+          body['message']?.toString() ?? 'Face enrollment gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+    } on DioException catch (e) {
+      throw KioskApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<CheckInRecord> recordVisit({
+    required String rfidUid,
+    String? deviceId,
+    int? locationId,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        KioskConfig.visitPath,
+        data: {
+          'rfid_uid': rfidUid,
+          if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+          if (locationId != null && locationId > 0) 'location_id': locationId,
+        },
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw KioskApiException(
+          body['message']?.toString() ?? 'Kunjungan gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+      return CheckInRecord.fromJson(
+        Map<String, dynamic>.from(body['data'] as Map),
+      );
+    } on DioException catch (e) {
+      throw KioskApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
   Future<void> uploadPhoto({
     required String code,
     required int userId,

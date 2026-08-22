@@ -19,7 +19,7 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: AppSpacing.scale(context, 58),
+      height: AppSpacing.primaryButtonHeight(context),
       child: FilledButton(
         onPressed: busy ? null : onPressed,
         child: busy
@@ -31,7 +31,11 @@ class PrimaryButton extends StatelessWidget {
                   color: Colors.white,
                 ),
               )
-            : Text(label.toUpperCase()),
+            : Text(
+                label.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
       ),
     );
   }
@@ -51,10 +55,14 @@ class SecondaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: AppSpacing.scale(context, 52),
+      height: AppSpacing.secondaryButtonHeight(context),
       child: OutlinedButton(
         onPressed: onPressed,
-        child: Text(label),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }
@@ -74,11 +82,13 @@ class GhostButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: AppSpacing.secondaryButtonHeight(context),
       child: TextButton(
         onPressed: onPressed,
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -103,6 +113,7 @@ class HelpButton extends StatelessWidget {
         onPressed: onPressed,
         style: TextButton.styleFrom(
           foregroundColor: AppColors.textSecondary,
+          minimumSize: const Size(48, 48),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: const StadiumBorder(),
         ),

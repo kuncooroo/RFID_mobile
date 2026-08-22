@@ -38,7 +38,9 @@
                 <tr>
                     <td>{{ ($visitors->firstItem() ?? 0) + $loop->index }}</td>
                     <td>
-                        <strong>{{ $visitor->name }}</strong>
+                        <a href="{{ route('admin.visitors.show', $visitor) }}" style="text-decoration:none;color:inherit;">
+                            <strong>{{ $visitor->name }}</strong>
+                        </a>
                         @if($visitor->member)
                             <div class="muted">{{ $visitor->member->membership_tier }}</div>
                         @endif
@@ -59,6 +61,7 @@
                         @endif
                     </td>
                     <td class="actions">
+                        <a class="btn secondary sm" href="{{ route('admin.visitors.show', $visitor) }}">History</a>
                         <a class="btn secondary sm" href="{{ route('admin.rfid.bind', ['user_id' => $visitor->id]) }}">Bind</a>
                         <a class="btn secondary sm" href="{{ route('admin.visitors.edit', $visitor) }}">Edit</a>
                     </td>

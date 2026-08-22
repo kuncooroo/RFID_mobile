@@ -16,6 +16,8 @@ abstract final class KioskConfig {
   static const rfidVerifyPath = '/kiosk/rfid/verify';
   static const verifyPath = '/kiosk/verify';
   static const registerPath = '/kiosk/register';
+  static const faceEnrollmentPath = '/kiosk/face-enrollment';
+  static const visitPath = '/kiosk/visit';
   static const uploadPath = '/kiosk/upload-photo';
   static const presencePath = '/kiosk/presence';
   static const checkInPath = '/kiosk/check-in';

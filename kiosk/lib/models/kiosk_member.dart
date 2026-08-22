@@ -51,6 +51,8 @@ class RfidLookup {
     this.user,
     this.rfidMemberId,
     this.message,
+    this.faceEnrolled = false,
+    this.needsFaceEnrollment = false,
   });
 
   final RfidCardStatus status;
@@ -62,6 +64,8 @@ class RfidLookup {
   final KioskUser? user;
   final int? rfidMemberId;
   final String? message;
+  final bool faceEnrolled;
+  final bool needsFaceEnrollment;
 
   bool get isRegistered =>
       resultCode == RfidLookupCode.memberFound && user != null;
@@ -85,6 +89,10 @@ class RfidLookup {
       user = KioskUser.fromJson(Map<String, dynamic>.from(userJson));
     }
 
+    final faceEnrolled = json['face_enrolled'] == true;
+    final needsEnrollment = json['needs_face_enrollment'] == true ||
+        (resultCode == RfidLookupCode.memberFound && !faceEnrolled);
+
     return RfidLookup(
       status: status,
       resultCode: resultCode,
@@ -95,6 +103,8 @@ class RfidLookup {
       user: user,
       rfidMemberId: (json['rfid_member_id'] as num?)?.toInt(),
       message: message,
+      faceEnrolled: faceEnrolled,
+      needsFaceEnrollment: needsEnrollment,
     );
   }
 }

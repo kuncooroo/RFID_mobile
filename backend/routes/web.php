@@ -33,6 +33,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/visitors', [VisitorController::class, 'index'])->name('visitors.index');
         Route::get('/visitors/create', [VisitorController::class, 'create'])->name('visitors.create');
         Route::post('/visitors', [VisitorController::class, 'store'])->name('visitors.store');
+        Route::get('/visitors/{visitor}', [VisitorController::class, 'show'])->name('visitors.show');
         Route::get('/visitors/{visitor}/edit', [VisitorController::class, 'edit'])->name('visitors.edit');
         Route::get('/visitors/{visitor}/faces/{pose}', [VisitorController::class, 'faceImage'])->name('visitors.face');
         Route::put('/visitors/{visitor}', [VisitorController::class, 'update'])->name('visitors.update');

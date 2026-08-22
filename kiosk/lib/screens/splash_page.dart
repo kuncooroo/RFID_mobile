@@ -75,36 +75,52 @@ class _KioskSplashPageState extends State<KioskSplashPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: KioskScaffold(
-        child: Column(
+      body: KioskPageShell(
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Spacer(),
-            const KioskLogo(),
+            const SizedBox(height: 24),
+            const Center(child: KioskLogo()),
             const SizedBox(height: 40),
             if (_busy)
-              const SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(strokeWidth: 3),
+              const Center(
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
               )
-            else if (_error != null) ...[
+            else if (_error != null)
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 18),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 18,
+                ),
               ),
-              const SizedBox(height: 24),
-              PrimaryButton(label: _strings.retry, onPressed: _boot),
-            ],
             const SizedBox(height: 24),
             Text(
               _status,
+              textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
             ),
-            const Spacer(),
+          ],
+        ),
+        footer: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_error != null) ...[
+              PrimaryButton(label: _strings.retry, onPressed: _boot),
+              const SizedBox(height: 16),
+            ],
             StatusIndicator(
-              status: _error != null ? SystemStatus.offline : SystemStatus.processing,
-              label: _error != null ? _strings.systemOffline : _strings.systemProcessing,
+              status: _error != null
+                  ? SystemStatus.offline
+                  : SystemStatus.processing,
+              label: _error != null
+                  ? _strings.systemOffline
+                  : _strings.systemProcessing,
             ),
           ],
         ),

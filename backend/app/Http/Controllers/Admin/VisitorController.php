@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\UserFaceEnrollment;
 use App\Models\UserSetting;
 use App\Support\AdminActivityLogger;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -102,6 +103,62 @@ class VisitorController extends Controller
         return redirect()
             ->route('admin.visitors.edit', $user)
             ->with('success', 'Visitor created successfully.');
+    }
+
+    public function show(Request $request, User $visitor): View
+    {
+        abort_unless($visitor->role === UserRole::Visitor, 404);
+        $visitor->load(['rfidMember', 'member', 'faceEnrollments']);
+
+        $faces = collect(UserFaceEnrollment::poses())->mapWithKeys(function (string $pose) use ($visitor) {
+            return [$pose => $visitor->faceEnrollments->firstWhere('pose', $pose)];
+        });
+
+        $dateFrom = trim((string) $request->query('date_from', ''));
+        $dateTo = trim((string) $request->query('date_to', ''));
+
+        $visits = KioskCheckIn::query()
+            ->with(['rfidMember', 'location'])
+            ->where('user_id', $visitor->id)
+            ->when($dateFrom !== '', function ($query) use ($dateFrom) {
+                try {
+                    $from = Carbon::createFromFormat('Y-m-d', $dateFrom)->startOfDay();
+                    $query->where('checked_in_at', '>=', $from);
+                } catch (\Throwable) {
+                    // ignore invalid date
+                }
+            })
+            ->when($dateTo !== '', function ($query) use ($dateTo) {
+                try {
+                    $to = Carbon::createFromFormat('Y-m-d', $dateTo)->endOfDay();
+                    $query->where('checked_in_at', '<=', $to);
+                } catch (\Throwable) {
+                    // ignore invalid date
+                }
+            })
+            ->orderByDesc('checked_in_at')
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        $visitCount = KioskCheckIn::query()
+            ->where('user_id', $visitor->id)
+            ->where('status', 'success')
+            ->count();
+
+        $pointsEarned = (int) KioskCheckIn::query()
+            ->where('user_id', $visitor->id)
+            ->sum('points_awarded');
+
+        return view('admin.visitors.show', compact(
+            'visitor',
+            'faces',
+            'visits',
+            'visitCount',
+            'pointsEarned',
+            'dateFrom',
+            'dateTo',
+        ));
     }
 
     public function edit(User $visitor): View

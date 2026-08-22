@@ -5,37 +5,41 @@ import '../theme/app_radius.dart';
 import '../theme/app_shadows.dart';
 
 class KioskLogo extends StatelessWidget {
-  const KioskLogo({super.key});
+  const KioskLogo({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final size = compact ? 40.0 : 56.0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 72,
-          height: 72,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
             color: AppColors.primary,
             borderRadius: AppRadius.md,
             boxShadow: AppShadows.card,
           ),
           alignment: Alignment.center,
-          child: const Text(
+          child: Text(
             'K',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 34,
+              fontSize: compact ? 20 : 26,
               fontWeight: FontWeight.w800,
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        const Text(
+        SizedBox(width: compact ? 10 : 12),
+        Text(
           'KUTUKU',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: compact ? 16 : 18,
             fontWeight: FontWeight.w800,
-            letterSpacing: 3,
+            letterSpacing: 2.5,
             color: AppColors.primaryDark,
           ),
         ),
@@ -45,19 +49,18 @@ class KioskLogo extends StatelessWidget {
 }
 
 class KioskHeader extends StatelessWidget {
-  const KioskHeader({super.key, this.trailing});
+  const KioskHeader({super.key, this.trailing, this.compact = true});
 
   final Widget? trailing;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        const KioskLogo(),
-        if (trailing != null) ...[
-          const SizedBox(height: 20),
-          trailing!,
-        ],
+        KioskLogo(compact: compact),
+        const Spacer(),
+        ?trailing,
       ],
     );
   }

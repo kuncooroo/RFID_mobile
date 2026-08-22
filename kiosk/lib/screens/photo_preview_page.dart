@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/kiosk_strings.dart';
 import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
 import '../widgets/kiosk_scaffold.dart';
 import '../widgets/primary_button.dart';
 
@@ -27,9 +28,13 @@ class PhotoPreviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return KioskScaffold(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(strings.photoOk, style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 24),
+          Text(
+            strings.photoOk,
+            style: Theme.of(context).textTheme.headlineLarge,
+          ),
+          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
           Expanded(
             child: ClipRRect(
               borderRadius: AppRadius.lg,
@@ -40,16 +45,17 @@ class PhotoPreviewPage extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          PrimaryButton(
-            label: strings.usePhoto,
-            busy: busy,
-            onPressed: onUsePhoto,
-          ),
-          const SizedBox(height: 8),
-          SecondaryButton(
-            label: strings.retake,
-            onPressed: busy ? null : onRetake,
+          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
+          KioskActionArea(
+            primary: PrimaryButton(
+              label: strings.usePhoto,
+              busy: busy,
+              onPressed: onUsePhoto,
+            ),
+            secondary: SecondaryButton(
+              label: strings.retake,
+              onPressed: busy ? null : onRetake,
+            ),
           ),
         ],
       ),
@@ -69,16 +75,19 @@ class ProgressStatusPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return KioskScaffold(
-      child: Column(
+    return KioskPageShell(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Spacer(),
-          const SizedBox(
-            width: 40,
-            height: 40,
-            child: CircularProgressIndicator(strokeWidth: 3),
+          const SizedBox(height: 48),
+          const Center(
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
           ),
-          const SizedBox(height: 28),
+          SizedBox(height: AppSpacing.vGap(context, 28, min: 16, max: 28)),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -90,7 +99,6 @@ class ProgressStatusPage extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const Spacer(),
         ],
       ),
     );
