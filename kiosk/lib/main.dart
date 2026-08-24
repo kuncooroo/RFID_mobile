@@ -16,6 +16,10 @@ Future<void> main() async {
   ]);
 
   debugPrint('Kiosk API => ${KioskConfig.apiBaseUrl}');
+  debugPrint(
+    'Kiosk camera mock: dart-define MOCK_CAMERA=${KioskConfig.mockCamera} '
+    '(web debug also auto-mocks)',
+  );
   runApp(const KioskApp());
 }
 
@@ -25,7 +29,7 @@ class KioskApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kutuku Kiosk',
+      title: 'TapGo Kiosk',
       debugShowCheckedModeBanner: false,
       theme: buildKioskTheme(),
       home: KioskSplashPage(api: KioskApi()),

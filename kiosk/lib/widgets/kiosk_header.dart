@@ -25,7 +25,7 @@ class KioskLogo extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: Text(
-            'K',
+            'T',
             style: TextStyle(
               color: Colors.white,
               fontSize: compact ? 20 : 26,
@@ -35,11 +35,11 @@ class KioskLogo extends StatelessWidget {
         ),
         SizedBox(width: compact ? 10 : 12),
         Text(
-          'KUTUKU',
+          'TapGo',
           style: TextStyle(
             fontSize: compact ? 16 : 18,
             fontWeight: FontWeight.w800,
-            letterSpacing: 2.5,
+            letterSpacing: -0.4,
             color: AppColors.primaryDark,
           ),
         ),

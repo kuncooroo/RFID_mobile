@@ -2,32 +2,53 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
-import '../theme/app_shadows.dart';
 
+/// Shared Material 3 surface card for kiosk screens.
 class KioskCard extends StatelessWidget {
   const KioskCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(32),
-    this.elevated = false,
+    this.elevation = 0,
+    this.borderRadius,
+    this.onTap,
   });
 
   final Widget child;
   final EdgeInsets padding;
-  final bool elevated;
+  final double elevation;
+  final BorderRadius? borderRadius;
+  final VoidCallback? onTap;
+
+  /// Backward-compatible alias for a slightly raised card.
+  const KioskCard.elevated({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(32),
+    this.borderRadius,
+    this.onTap,
+  }) : elevation = 1;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final radius = borderRadius ?? AppRadius.lg;
+    final content = Padding(padding: padding, child: child);
+
+    return SizedBox(
       width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
+      child: Card(
+        elevation: elevation,
+        margin: EdgeInsets.zero,
         color: AppColors.surface,
-        borderRadius: AppRadius.lg,
-        boxShadow: elevated ? AppShadows.elevated : AppShadows.card,
-        border: Border.all(color: AppColors.border),
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black.withValues(alpha: 0.06),
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: const BorderSide(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: onTap == null ? content : InkWell(onTap: onTap, child: content),
       ),
-      child: child,
     );
   }
 }

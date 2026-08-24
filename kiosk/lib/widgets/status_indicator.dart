@@ -5,21 +5,17 @@ import '../theme/app_colors.dart';
 enum SystemStatus { ready, processing, offline, error }
 
 class StatusIndicator extends StatelessWidget {
-  const StatusIndicator({
-    super.key,
-    required this.status,
-    required this.label,
-  });
+  const StatusIndicator({super.key, required this.status, required this.label});
 
   final SystemStatus status;
   final String label;
 
   Color get _color => switch (status) {
-        SystemStatus.ready => AppColors.success,
-        SystemStatus.processing => AppColors.warning,
-        SystemStatus.offline => AppColors.error,
-        SystemStatus.error => AppColors.error,
-      };
+    SystemStatus.ready => AppColors.success,
+    SystemStatus.processing => AppColors.warning,
+    SystemStatus.offline => AppColors.error,
+    SystemStatus.error => AppColors.error,
+  };
 
   @override
   Widget build(BuildContext context) {

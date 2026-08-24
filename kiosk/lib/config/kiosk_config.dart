@@ -37,4 +37,15 @@ abstract final class KioskConfig {
   static const lookupTimeout = Duration(seconds: 20);
   static const sessionTimeout = Duration(seconds: 90);
   static const timeoutHold = Duration(seconds: 5);
+
+  /// Compile-time flag. Prefer also enabling auto-mock on web debug (see flow).
+  ///
+  /// Example:
+  /// `flutter run -d chrome --dart-define=MOCK_CAMERA=true`
+  static const mockCamera = bool.fromEnvironment(
+    'MOCK_CAMERA',
+    defaultValue: false,
+  );
+
+  static const mockCameraAsset = 'assets/images/welcome/register.png';
 }

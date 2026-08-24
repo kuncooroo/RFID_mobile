@@ -32,13 +32,7 @@ enum RfidLookupCode {
   serverError,
 }
 
-enum RfidCardStatus {
-  unregistered,
-  registered,
-  inactive,
-  invalid,
-  error,
-}
+enum RfidCardStatus { unregistered, registered, inactive, invalid, error }
 
 class RfidLookup {
   const RfidLookup({
@@ -90,7 +84,8 @@ class RfidLookup {
     }
 
     final faceEnrolled = json['face_enrolled'] == true;
-    final needsEnrollment = json['needs_face_enrollment'] == true ||
+    final needsEnrollment =
+        json['needs_face_enrollment'] == true ||
         (resultCode == RfidLookupCode.memberFound && !faceEnrolled);
 
     return RfidLookup(
@@ -171,11 +166,7 @@ RfidLookupCode _parseResultCode(String? code, String? status) {
 }
 
 class RegisterDraft {
-  const RegisterDraft({
-    required this.name,
-    this.email,
-    this.phone,
-  });
+  const RegisterDraft({required this.name, this.email, this.phone});
 
   final String name;
   final String? email;

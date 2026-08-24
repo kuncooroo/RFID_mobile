@@ -17,7 +17,8 @@ class PresenceService {
       bytes: photoBytes,
       deviceId: KioskConfig.deviceId,
       locationId: KioskConfig.locationId > 0 ? KioskConfig.locationId : null,
-      filename: 'presence_${rfidUid}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      filename:
+          'presence_${rfidUid}_${DateTime.now().millisecondsSinceEpoch}.jpg',
     );
   }
 

@@ -7,20 +7,19 @@ class KioskStrings {
 
   bool get isId => lang == KioskLang.id;
 
-  String get brand => 'KUTUKU';
+  String get brand => 'TapGo';
 
-  String get welcomeTo => isId ? 'Halo, selamat datang di KUTUKU' : 'Hello, Welcome to KUTUKU';
+  String get welcomeTo =>
+      isId ? 'Halo, selamat datang di TapGo' : 'Hello, Welcome to TapGo';
   String get whatToday =>
       isId ? 'Mau apa hari ini?' : 'What do you want today?';
-  String get tapMemberCard =>
-      isId ? 'Tempel Kartu Member' : 'Tap Member Card';
+  String get tapMemberCard => isId ? 'Tempel Kartu Member' : 'Tap Member Card';
   String get tapMemberCardBody => isId
       ? 'Gunakan kartu member Anda untuk melanjutkan'
       : 'Use your member card to continue';
   String get registerCardTitle => isId ? 'Daftar' : 'Register';
-  String get registerCardBody => isId
-      ? 'Buat profil member baru'
-      : 'Create a new member profile';
+  String get registerCardBody =>
+      isId ? 'Buat profil member baru' : 'Create a new member profile';
   String get tapToCheckIn => tapMemberCardBody;
   String get tapCardHere => isId ? 'TEMPLEK KARTU DI SINI' : 'TAP CARD HERE';
   String get readyToScan => isId ? 'Siap memindai' : 'Ready to scan';
@@ -35,8 +34,7 @@ class KioskStrings {
   String get cardAlreadyRegistered => isId
       ? 'Kartu ini sudah terdaftar pada member lain.'
       : 'This card is already registered to a member.';
-  String get needAssistance =>
-      isId ? 'Butuh bantuan?' : 'Need help?';
+  String get needAssistance => isId ? 'Butuh bantuan?' : 'Need help?';
   String get systemReady => isId ? 'Siap memindai' : 'Ready to scan';
   String get systemOffline =>
       isId ? 'Koneksi tidak tersedia' : 'Connection unavailable';
@@ -58,8 +56,8 @@ class KioskStrings {
   String get scanInstructionTitle =>
       isId ? 'Tempelkan kartu RFID Anda' : 'Tap your RFID card';
   String get scanInstructionSubtitle => isId
-      ? 'Pastikan kartu dekat dengan RFID reader'
-      : 'Keep your card close to the RFID reader';
+      ? 'Dekatkan kartu ke RFID reader untuk melanjutkan'
+      : 'Hold your card near the reader to continue';
   String get scanRfidTitle => isId ? 'TEMPLEK KARTU' : 'TAP YOUR CARD';
   String get scanRfidDesc => isId
       ? 'Tempelkan kartu RFID ke reader untuk melanjutkan'
@@ -68,8 +66,7 @@ class KioskStrings {
   String get scanReadingDesc => isId
       ? 'Mohon tetap dekatkan kartu ke reader'
       : 'Please keep the card close to the reader';
-  String get usageGuide =>
-      isId ? 'Petunjuk Penggunaan' : 'How to use';
+  String get usageGuide => isId ? 'Petunjuk Penggunaan' : 'How to use';
   List<String> get scanGuideSteps => isId
       ? const [
           'Dekatkan kartu RFID ke reader.',
@@ -90,11 +87,12 @@ class KioskStrings {
   String get welcomeBack => isId ? 'Selamat datang kembali!' : 'Welcome Back!';
   String get memberId => 'Member ID';
   String get newCardDetected =>
-      isId ? 'Kartu Baru Terdeteksi' : 'New Card Detected';
+      isId ? 'Kartu ini belum\nterdaftar' : 'This card is not\nregistered yet';
   String get newCardBody => isId
-      ? 'Kartu ini belum terhubung ke member.\nIngin mendaftarkannya?'
-      : "This card isn't connected\nto a member yet.\n\nWould you like to register it?";
+      ? 'Apakah Anda ingin mendaftar\nsebagai member baru?'
+      : 'Would you like to register\nas a new member?';
   String get register => isId ? 'DAFTAR' : 'REGISTER';
+  String get registerNowCta => isId ? 'Daftar Sekarang' : 'Register Now';
   String get createProfile =>
       isId ? 'Buat Profil Member' : 'Create Your Member Profile';
   String get createProfileBody => isId
@@ -103,13 +101,11 @@ class KioskStrings {
   String get fullName => isId ? 'Nama lengkap' : 'Full Name';
   String get phone => isId ? 'Nomor telepon' : 'Phone Number';
   String get email => 'Email';
-  String get contactHint => isId
-      ? 'Isi nomor telepon atau email'
-      : 'Enter a phone number or email';
+  String get contactHint =>
+      isId ? 'Isi nomor telepon atau email' : 'Enter a phone number or email';
   String get continueCta => isId ? 'LANJUT' : 'CONTINUE';
   String get back => isId ? 'Kembali' : 'Back';
-  String stepOf(int n, int total) =>
-      isId ? '$n dari $total' : '$n of $total';
+  String stepOf(int n, int total) => isId ? '$n dari $total' : '$n of $total';
 
   String get faceSetupTitle =>
       isId ? 'Siapkan Face ID Anda' : 'Set Up Your Face ID';
@@ -119,11 +115,18 @@ class KioskStrings {
   String get faceOnceOnly => isId
       ? 'Ini hanya perlu dilakukan sekali.\nKunjungan berikutnya tidak perlu foto.'
       : "This only needs to be done once.\nYou won't need to take photos\nduring future visits.";
+  String get faceEnrollmentLabel => 'Face Enrollment';
+  String get faceRequiredAccent => isId ? 'Diperlukan' : 'Required';
   String get faceRequiredTitle =>
       isId ? 'Face Enrollment Diperlukan' : 'Face Enrollment Required';
   String get faceRequiredBody => isId
       ? 'Akun Anda sudah ada, tetapi foto identitas belum lengkap.'
       : 'Your account exists, but identity photos are not complete yet.';
+  String get photosNeeded =>
+      isId ? 'Foto yang Dibutuhkan' : 'Photos Needed';
+  String get photosNeededBody => isId
+      ? 'Kami akan memandu Anda mengambil 3 sudut'
+      : "We'll guide you to capture 3 angles";
 
   String get lookStraight =>
       isId ? 'Lihat Lurus ke Depan' : 'Look Straight Ahead';
@@ -143,18 +146,18 @@ class KioskStrings {
   String get poseFront => isId ? 'DEPAN' : 'FRONT';
   String get poseRight => isId ? 'KANAN' : 'RIGHT';
   String get poseLeft => isId ? 'KIRI' : 'LEFT';
-  String get keepFace =>
-      isId ? 'Pastikan wajah ada di dalam bingkai.' : 'Keep your face inside the frame.';
+  String get keepFace => isId
+      ? 'Silakan posisikan wajah Anda di dalam bingkai'
+      : 'Please position your face in the frame';
+  String get takeAPhoto => isId ? 'Ambil foto' : 'Take a photo';
   String get capture => isId ? 'Mengambil' : 'Capture';
   String get usePhoto => isId ? 'Gunakan foto' : 'Use photo';
   String get retake => isId ? 'Ambil ulang' : 'Retake';
   String get photoOk => isId ? 'Foto ini sudah oke?' : 'Is this photo okay?';
 
-  String get faceReviewTitle =>
-      isId ? 'Face Enrollment' : 'Face Enrollment';
-  String get faceReviewBody => isId
-      ? 'Foto identitas Anda siap.'
-      : 'Your identity photos are ready.';
+  String get faceReviewTitle => isId ? 'Face Enrollment' : 'Face Enrollment';
+  String get faceReviewBody =>
+      isId ? 'Foto identitas Anda siap.' : 'Your identity photos are ready.';
   String get completeEnrollment =>
       isId ? 'SELESAIKAN ENROLLMENT' : 'COMPLETE ENROLLMENT';
   String get savingIdentity =>
@@ -224,16 +227,16 @@ class KioskStrings {
       ? 'Butuh bantuan lebih?\nHubungi petugas.'
       : 'Need more help?\nPlease contact staff.';
   String get nameRequired => isId ? 'Nama wajib diisi' : 'Name is required';
-  String get contactRequired => isId
-      ? 'Isi nomor telepon atau email'
-      : 'Enter a phone number or email';
+  String get contactRequired =>
+      isId ? 'Isi nomor telepon atau email' : 'Enter a phone number or email';
   String get phoneShort =>
       isId ? 'Nomor telepon terlalu pendek' : 'Phone number is too short';
   String get emailInvalid => isId ? 'Email tidak valid' : 'Email is not valid';
   String get rfidInactive =>
       isId ? 'Kartu RFID ini tidak aktif.' : 'This RFID card is inactive.';
-  String get rfidInvalid =>
-      isId ? 'Kartu tidak dikenali. Tempel ulang.' : 'This card could not be read. Please tap again.';
+  String get rfidInvalid => isId
+      ? 'Kartu tidak dikenali. Tempel ulang.'
+      : 'This card could not be read. Please tap again.';
   String get lookupTimeout => isId
       ? 'Waktu habis. Tempel kartu Anda lagi.'
       : 'This is taking too long. Please tap your card again.';
@@ -250,8 +253,7 @@ class KioskStrings {
   String get bootConfig =>
       isId ? 'Memeriksa pengaturan...' : 'Checking configuration...';
   String get bootReady => isId ? 'Siap' : 'Ready';
-  String get bootFailed =>
-      isId ? 'Server belum siap' : 'Server is not ready';
+  String get bootFailed => isId ? 'Server belum siap' : 'Server is not ready';
 
   // Legacy aliases used by older widgets during transition
   String get helloWelcome => welcomeTo;
@@ -259,7 +261,7 @@ class KioskStrings {
   String get needHelp => needAssistance;
   String get cardNotRegistered => newCardDetected;
   String get cardNotRegisteredBody => newCardBody;
-  String get registerNow => register;
+  String get registerNow => registerNowCta;
   String get createAccount => createProfile;
   String get whatName => fullName;
   String get contactInfo => contactHint;

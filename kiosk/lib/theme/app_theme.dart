@@ -62,5 +62,17 @@ ThemeData buildKioskTheme() {
         shape: RoundedRectangleBorder(borderRadius: AppRadius.md),
       ),
     ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.black.withValues(alpha: 0.06),
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.lg,
+        side: const BorderSide(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+    ),
   );
 }

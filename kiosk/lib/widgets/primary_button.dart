@@ -58,22 +58,14 @@ class SecondaryButton extends StatelessWidget {
       height: AppSpacing.secondaryButtonHeight(context),
       child: OutlinedButton(
         onPressed: onPressed,
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
   }
 }
 
 class GhostButton extends StatelessWidget {
-  const GhostButton({
-    super.key,
-    required this.label,
-    required this.onPressed,
-  });
+  const GhostButton({super.key, required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback? onPressed;

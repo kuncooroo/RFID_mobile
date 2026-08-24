@@ -24,9 +24,15 @@ class LanguageSelector extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? 2 : 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: compact
+            ? Colors.white
+            : AppColors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(compact ? 9 : 14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: compact
+              ? AppColors.border
+              : AppColors.primary.withValues(alpha: 0.22),
+        ),
         boxShadow: compact
             ? null
             : const [
@@ -66,16 +72,14 @@ class LanguageSelector extends StatelessWidget {
           vertical: compact ? 6 : (expandedLabels ? 10 : 8),
         ),
         decoration: BoxDecoration(
-          color: active ? Colors.white : Colors.transparent,
+          color: active
+              ? (compact
+                    ? AppColors.primary.withValues(alpha: 0.12)
+                    : AppColors.primary)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(compact ? 7 : 10),
-          boxShadow: active && !compact
-              ? const [
-                  BoxShadow(
-                    color: Color(0x14000000),
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  ),
-                ]
+          border: active && compact
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.28))
               : null,
         ),
         child: Row(
@@ -88,11 +92,13 @@ class LanguageSelector extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontWeight: FontWeight.w600,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                 fontSize: compact ? 11 : (expandedLabels ? 15 : 13),
                 color: active
-                    ? const Color(0xFF111111)
-                    : const Color(0xFF444444),
+                    ? (compact ? AppColors.primaryDark : Colors.white)
+                    : (compact
+                          ? const Color(0xFF888888)
+                          : AppColors.primaryDark),
               ),
             ),
           ],

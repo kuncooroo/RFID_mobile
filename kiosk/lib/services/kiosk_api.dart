@@ -18,19 +18,20 @@ class KioskApiException implements Exception {
 
 class KioskApi {
   KioskApi({Dio? dio})
-      : _dio = dio ??
-            Dio(
-              BaseOptions(
-                baseUrl: KioskConfig.apiBaseUrl,
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 30),
-                headers: {
-                  'Accept': 'application/json',
-                  if (KioskConfig.apiKey.isNotEmpty)
-                    'X-Kiosk-Key': KioskConfig.apiKey,
-                },
-              ),
-            );
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: KioskConfig.apiBaseUrl,
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 30),
+              headers: {
+                'Accept': 'application/json',
+                if (KioskConfig.apiKey.isNotEmpty)
+                  'X-Kiosk-Key': KioskConfig.apiKey,
+              },
+            ),
+          );
 
   final Dio _dio;
 
@@ -70,10 +71,7 @@ class KioskApi {
         );
       }
       final data = Map<String, dynamic>.from(body['data'] as Map);
-      return RfidLookup.fromJson(
-        data,
-        message: body['message']?.toString(),
-      );
+      return RfidLookup.fromJson(data, message: body['message']?.toString());
     } on DioException catch (e) {
       throw KioskApiException(
         _messageFromDio(e),
@@ -108,10 +106,7 @@ class KioskApi {
         );
       }
       final data = Map<String, dynamic>.from(body['data'] as Map);
-      return RfidLookup.fromJson(
-        data,
-        message: body['message']?.toString(),
-      );
+      return RfidLookup.fromJson(data, message: body['message']?.toString());
     } on DioException catch (e) {
       throw KioskApiException(
         _messageFromDio(e),
@@ -290,10 +285,7 @@ class KioskApi {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         KioskConfig.checkInPath,
-        data: {
-          'presence_id': presenceId,
-          'rfid_uid': rfidUid,
-        },
+        data: {'presence_id': presenceId, 'rfid_uid': rfidUid},
       );
       final body = response.data ?? {};
       if (body['success'] != true) {

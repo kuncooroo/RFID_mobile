@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/kiosk_strings.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
+import '../widgets/alert_status_layout.dart';
 import '../widgets/kiosk_scaffold.dart';
 import '../widgets/primary_button.dart';
 
@@ -12,43 +12,33 @@ class UnregisteredPage extends StatelessWidget {
   const UnregisteredPage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.onRegister,
     required this.onCancel,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onRegister;
   final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.credit_card_outlined,
-            size: 72,
-            color: AppColors.primary,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.newCardDetected,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 16, min: 8, max: 16)),
-          Text(
-            strings.newCardBody,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        primary: PrimaryButton(label: strings.register, onPressed: onRegister),
-        secondary: SecondaryButton(label: strings.cancel, onPressed: onCancel),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.newCardDetected,
+      body: strings.newCardBody,
+      tone: AlertTone.warning,
+      icon: Icons.info_rounded,
+      primaryLabel: strings.registerNowCta,
+      onPrimary: onRegister,
+      secondaryLabel: strings.cancel,
+      onSecondary: onCancel,
+      onBack: onCancel,
     );
   }
 }
@@ -57,77 +47,40 @@ class FaceEnrollmentIntroPage extends StatelessWidget {
   const FaceEnrollmentIntroPage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.onStart,
+    required this.onBack,
     this.requiredExisting = false,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onStart;
+  final VoidCallback onBack;
   final bool requiredExisting;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            requiredExisting
-                ? strings.faceRequiredTitle
-                : strings.faceSetupTitle,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 16, min: 8, max: 16)),
-          Text(
-            requiredExisting
-                ? strings.faceRequiredBody
-                : strings.faceSetupBody,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 28, min: 14, max: 28)),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _poseChip(strings.poseFront),
-              _poseChip(strings.poseRight),
-              _poseChip(strings.poseLeft),
-            ],
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 28, min: 14, max: 28)),
-          Text(
-            strings.faceOnceOnly,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        primary: PrimaryButton(label: strings.start, onPressed: onStart),
-      ),
-    );
-  }
+    final title = requiredExisting
+        ? strings.faceRequiredTitle
+        : strings.faceSetupTitle;
+    final body = requiredExisting
+        ? strings.faceRequiredBody
+        : '${strings.faceSetupBody}\n\n${strings.faceOnceOnly}';
 
-  Widget _poseChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1,
-          color: AppColors.primaryDark,
-        ),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: title,
+      body: body,
+      tone: AlertTone.brand,
+      icon: Icons.face_retouching_natural_rounded,
+      primaryLabel: strings.start,
+      onPrimary: onStart,
+      onBack: onBack,
     );
   }
 }
@@ -177,8 +130,8 @@ class PoseProgressBar extends StatelessWidget {
                   color: completed.contains(poses[i].$2)
                       ? AppColors.success
                       : i == currentIndex
-                          ? AppColors.primary
-                          : Colors.transparent,
+                      ? AppColors.primary
+                      : Colors.transparent,
                   border: Border.all(
                     color: completed.contains(poses[i].$2) || i == currentIndex
                         ? Colors.transparent
@@ -250,7 +203,10 @@ class FaceReviewPage extends StatelessWidget {
               label: strings.completeEnrollment,
               onPressed: onComplete,
             ),
-            secondary: SecondaryButton(label: strings.retake, onPressed: onRetake),
+            secondary: SecondaryButton(
+              label: strings.retake,
+              onPressed: onRetake,
+            ),
           ),
         ],
       ),
@@ -281,18 +237,20 @@ class VisitSuccessPage extends StatelessWidget {
   const VisitSuccessPage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.name,
     required this.pointsAwarded,
     required this.pointsBalance,
-    required this.countdown,
     required this.onDone,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final String name;
   final int pointsAwarded;
   final int pointsBalance;
-  final int countdown;
   final VoidCallback onDone;
 
   String _fmt(int n) {
@@ -309,43 +267,34 @@ class VisitSuccessPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final earned = pointsAwarded > 0;
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.welcomeBack,
+      body: name,
+      tone: AlertTone.success,
+      icon: Icons.check_rounded,
+      badge: AlertBadgeKind.check,
+      primaryLabel: strings.done,
+      onPrimary: onDone,
+      onBack: onDone,
+      bodyExtra: Column(
         children: [
-          Container(
-            width: 88,
-            height: 88,
-            decoration: const BoxDecoration(
-              color: AppColors.success,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check_rounded, size: 52, color: Colors.white),
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.welcomeBack,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 10, min: 6, max: 10)),
-          Text(
-            name,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 28, min: 14, max: 28)),
           if (earned) ...[
             Text(
               strings.pointsPlus(pointsAwarded),
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 42,
-                  ),
+                color: AppColors.success,
+                fontWeight: FontWeight.w800,
+                fontSize: 42,
+              ),
             ),
-            SizedBox(height: AppSpacing.vGap(context, 28, min: 14, max: 28)),
-            Text(strings.totalBalance, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 20),
+            Text(
+              strings.totalBalance,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             const SizedBox(height: 6),
             Text(
               '${_fmt(pointsBalance)} ${strings.points}',
@@ -357,28 +306,23 @@ class VisitSuccessPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-            Text(strings.yourTotal, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 20),
+            Text(
+              strings.yourTotal,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             const SizedBox(height: 6),
             Text(
               '${_fmt(pointsBalance)} ${strings.points}',
               style: Theme.of(context).textTheme.headlineLarge,
             ),
           ],
-          SizedBox(height: AppSpacing.vGap(context, 20, min: 10, max: 20)),
+          const SizedBox(height: 16),
           Text(
             strings.thanksVisit,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
-      ),
-      footer: KioskActionArea(
-        leading: Text(
-          strings.returningIn(countdown),
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textMuted),
-        ),
-        primary: PrimaryButton(label: strings.done, onPressed: onDone),
       ),
     );
   }
@@ -388,55 +332,36 @@ class DuplicateCheckInPage extends StatelessWidget {
   const DuplicateCheckInPage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.onHome,
     this.name,
-    this.countdown,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onHome;
   final String? name;
-  final int? countdown;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.info_outline_rounded, size: 72, color: AppColors.warning),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.alreadyCheckedIn,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          if (name != null && name!.isNotEmpty) ...[
-            SizedBox(height: AppSpacing.vGap(context, 12, min: 6, max: 12)),
-            Text(
-              strings.alreadyCheckedInHi(name!),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ],
-          SizedBox(height: AppSpacing.vGap(context, 16, min: 8, max: 16)),
-          Text(
-            strings.alreadyCheckedInBody,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        leading: countdown != null
-            ? Text(
-                strings.returningIn(countdown!),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted),
-              )
-            : null,
-        primary: PrimaryButton(label: strings.backHome, onPressed: onHome),
-      ),
+    final body = [
+      if (name != null && name!.isNotEmpty) strings.alreadyCheckedInHi(name!),
+      strings.alreadyCheckedInBody,
+    ].join('\n\n');
+
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.alreadyCheckedIn,
+      body: body,
+      tone: AlertTone.warning,
+      icon: Icons.info_rounded,
+      primaryLabel: strings.backHome,
+      onPrimary: onHome,
+      onBack: onHome,
     );
   }
 }
@@ -445,51 +370,30 @@ class EnrollmentCompletePage extends StatelessWidget {
   const EnrollmentCompletePage({
     super.key,
     required this.strings,
-    required this.countdown,
+    required this.lang,
+    required this.onLangChanged,
     required this.onDone,
   });
 
   final KioskStrings strings;
-  final int countdown;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onDone;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 88,
-            height: 88,
-            decoration: const BoxDecoration(
-              color: AppColors.success,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check_rounded, size: 52, color: Colors.white),
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.faceEnrollmentComplete,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 12, min: 6, max: 12)),
-          Text(
-            strings.faceEnrollmentCompleteBody,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        leading: Text(
-          strings.returningIn(countdown),
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textMuted),
-        ),
-        primary: PrimaryButton(label: strings.done, onPressed: onDone),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.faceEnrollmentComplete,
+      body: strings.faceEnrollmentCompleteBody,
+      tone: AlertTone.success,
+      icon: Icons.check_rounded,
+      badge: AlertBadgeKind.check,
+      primaryLabel: strings.done,
+      onPrimary: onDone,
+      onBack: onDone,
     );
   }
 }
@@ -498,41 +402,35 @@ class ErrorPage extends StatelessWidget {
   const ErrorPage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.message,
     required this.onRetry,
     required this.onCancel,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final String message;
   final VoidCallback onRetry;
   final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline_rounded, size: 72, color: AppColors.error),
-          SizedBox(height: AppSpacing.vGap(context, 20, min: 10, max: 20)),
-          Text(
-            strings.somethingWrong,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 12, min: 6, max: 12)),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        primary: PrimaryButton(label: strings.tryAgain, onPressed: onRetry),
-        secondary: SecondaryButton(label: strings.backHome, onPressed: onCancel),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.somethingWrong,
+      body: message,
+      tone: AlertTone.error,
+      icon: Icons.error_outline_rounded,
+      primaryLabel: strings.tryAgain,
+      onPrimary: onRetry,
+      secondaryLabel: strings.backHome,
+      onSecondary: onCancel,
+      onBack: onCancel,
     );
   }
 }
@@ -541,39 +439,33 @@ class OfflinePage extends StatelessWidget {
   const OfflinePage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.onRetry,
     required this.onHome,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onRetry;
   final VoidCallback onHome;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.wifi_off_rounded, size: 72, color: AppColors.error),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.connectionUnavailable,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 16, min: 8, max: 16)),
-          Text(
-            strings.cannotReach,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        primary: PrimaryButton(label: strings.retry, onPressed: onRetry),
-        secondary: GhostButton(label: strings.backHome, onPressed: onHome),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.connectionUnavailable,
+      body: strings.cannotReach,
+      tone: AlertTone.error,
+      icon: Icons.wifi_off_rounded,
+      primaryLabel: strings.retry,
+      onPrimary: onRetry,
+      secondaryLabel: strings.backHome,
+      onSecondary: onHome,
+      onBack: onHome,
     );
   }
 }
@@ -582,39 +474,33 @@ class CameraErrorPage extends StatelessWidget {
   const CameraErrorPage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.onRetry,
     required this.onHome,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onRetry;
   final VoidCallback onHome;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.videocam_off_outlined, size: 72, color: AppColors.error),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.cameraUnavailable,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 16, min: 8, max: 16)),
-          Text(
-            strings.cameraUnavailableBody,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        primary: PrimaryButton(label: strings.tryAgain, onPressed: onRetry),
-        secondary: SecondaryButton(label: strings.backHome, onPressed: onHome),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.cameraUnavailable,
+      body: strings.cameraUnavailableBody,
+      tone: AlertTone.error,
+      icon: Icons.videocam_off_rounded,
+      primaryLabel: strings.tryAgain,
+      onPrimary: onRetry,
+      secondaryLabel: strings.backHome,
+      onSecondary: onHome,
+      onBack: onHome,
     );
   }
 }
@@ -623,72 +509,60 @@ class TimeoutPage extends StatelessWidget {
   const TimeoutPage({
     super.key,
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.onStart,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.timer_off_outlined, size: 72, color: AppColors.textSecondary),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.sessionExpired,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 16, min: 8, max: 16)),
-          Text(
-            strings.sessionExpiredBody,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        primary: PrimaryButton(label: strings.startAgain, onPressed: onStart),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.sessionExpired,
+      body: strings.sessionExpiredBody,
+      tone: AlertTone.muted,
+      icon: Icons.timer_off_rounded,
+      primaryLabel: strings.startAgain,
+      onPrimary: onStart,
+      onBack: onStart,
     );
   }
 }
 
 class HelpPage extends StatelessWidget {
-  const HelpPage({super.key, required this.strings, required this.onBack});
+  const HelpPage({
+    super.key,
+    required this.strings,
+    required this.lang,
+    required this.onLangChanged,
+    required this.onBack,
+  });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
-    return KioskPageShell(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            strings.helpTitle,
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.helpBody,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6),
-          ),
-          SizedBox(height: AppSpacing.vGap(context, 24, min: 12, max: 24)),
-          Text(
-            strings.helpMore,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-      footer: KioskActionArea(
-        primary: PrimaryButton(label: strings.tryAgain, onPressed: onBack),
-      ),
+    return AlertStatusLayout(
+      strings: strings,
+      lang: lang,
+      onLangChanged: onLangChanged,
+      title: strings.helpTitle,
+      body: '${strings.helpBody}\n\n${strings.helpMore}',
+      tone: AlertTone.muted,
+      icon: Icons.help_rounded,
+      primaryLabel: strings.tryAgain,
+      onPrimary: onBack,
+      onBack: onBack,
     );
   }
 }

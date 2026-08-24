@@ -11,12 +11,14 @@ class KioskScaffold extends StatelessWidget {
     super.key,
     required this.child,
     this.dark = false,
+    this.backgroundColor,
     this.horizontalPadding,
     this.verticalPadding,
   });
 
   final Widget child;
   final bool dark;
+  final Color? backgroundColor;
   final double? horizontalPadding;
   final double? verticalPadding;
 
@@ -24,13 +26,14 @@ class KioskScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final padding = horizontalPadding ?? AppSpacing.pagePadding(context);
     final maxWidth = AppSpacing.maxContentWidth(context);
-    final vPad = verticalPadding ??
-        (AppSpacing.isCompactHeight(context)
-            ? padding * 0.35
-            : padding * 0.55);
+    final vPad =
+        verticalPadding ??
+        (AppSpacing.isCompactHeight(context) ? padding * 0.35 : padding * 0.55);
 
     return ColoredBox(
-      color: dark ? const Color(0xFF111111) : AppColors.background,
+      color: dark
+          ? const Color(0xFF111111)
+          : (backgroundColor ?? AppColors.background),
       child: SafeArea(
         child: Theme(
           data: Theme.of(context).copyWith(
@@ -162,15 +165,9 @@ class KioskActionArea extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (leading != null) ...[
-          leading!,
-          SizedBox(height: gap + 8),
-        ],
+        if (leading != null) ...[leading!, SizedBox(height: gap + 8)],
         primary,
-        if (secondary != null) ...[
-          SizedBox(height: gap),
-          secondary!,
-        ],
+        if (secondary != null) ...[SizedBox(height: gap), secondary!],
       ],
     );
   }

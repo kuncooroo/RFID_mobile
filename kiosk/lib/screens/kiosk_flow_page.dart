@@ -14,8 +14,7 @@ import '../services/kiosk_api.dart';
 import '../services/rfid_keyboard_buffer.dart';
 import '../services/visit_service.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_radius.dart';
-import '../widgets/kiosk_scaffold.dart';
+import '../widgets/kiosk_app_header.dart';
 import 'idle_page.dart';
 import 'photo_preview_page.dart';
 import 'register_pages.dart';
@@ -27,8 +26,7 @@ enum KioskStep {
   awaitingRfidRegister,
   verifyingRfid,
   rfidUnregistered,
-  registrationName,
-  registrationContact,
+  registration,
   faceEnrollmentIntro,
   faceCapture,
   facePosePreview,
@@ -86,13 +84,13 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
   bool _enrollmentForExisting = false;
 
   CameraController? _cameraController;
+  /// True for this capture session when using placeholder instead of hardware.
+  bool _usingMockCamera = false;
   Timer? _countdownTimer;
   Timer? _healthTimer;
   Timer? _holdTimer;
   Timer? _sessionTimer;
-  Timer? _returnTimer;
   int _countdown = KioskConfig.countdownSeconds;
-  int _returnSeconds = 5;
 
   KioskStrings get _s => KioskStrings(_lang);
   bool get _hardwareReady => _rfidReady && _serverOnline;
@@ -129,7 +127,6 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     _healthTimer?.cancel();
     _holdTimer?.cancel();
     _sessionTimer?.cancel();
-    _returnTimer?.cancel();
     _rfidFocus.dispose();
     unawaited(_disposeCamera());
     _scannerController.dispose();
@@ -156,7 +153,6 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
   Future<void> _timeoutSession() async {
     _countdownTimer?.cancel();
     _holdTimer?.cancel();
-    _returnTimer?.cancel();
     await _disposeCamera();
     await _stopScannerFully();
     if (!mounted) return;
@@ -181,8 +177,16 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     _enrollmentForExisting = false;
     _registerFlow = false;
     _rfidLocked = false;
+    _usingMockCamera = false;
     _countdown = KioskConfig.countdownSeconds;
   }
+
+  /// Explicit dart-define, or auto on Flutter web debug (no webcam needed).
+  bool get _preferMockCamera =>
+      KioskConfig.mockCamera || (kDebugMode && kIsWeb);
+
+  bool get _mockCaptureActive =>
+      _usingMockCamera || KioskConfig.mockCamera;
 
   void _startHealthPoll() {
     _healthTimer?.cancel();
@@ -300,7 +304,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
         case RfidLookupCode.rfidNotRegistered:
           setState(() => _lookup = lookup);
           if (registerFlow) {
-            setState(() => _step = KioskStep.registrationName);
+            setState(() => _step = KioskStep.registration);
             _bumpSession();
           } else {
             setState(() => _step = KioskStep.rfidUnregistered);
@@ -382,7 +386,6 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
   void _showError(String message, {bool camera = false}) {
     if (!mounted) return;
     _holdTimer?.cancel();
-    _returnTimer?.cancel();
     setState(() {
       _errorMessage = message;
       _step = camera ? KioskStep.cameraError : KioskStep.error;
@@ -395,7 +398,6 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
     _countdownTimer?.cancel();
     _holdTimer?.cancel();
     _sessionTimer?.cancel();
-    _returnTimer?.cancel();
     await _disposeCamera();
     if (!mounted) return;
     setState(() {
@@ -413,7 +415,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       return;
     }
     if (_registerFlow && _lookup != null && !_lookup!.isRegistered) {
-      setState(() => _step = KioskStep.registrationName);
+      setState(() => _step = KioskStep.registration);
       _bumpSession();
       return;
     }
@@ -458,44 +460,71 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       setState(() => _checkIn = checkIn);
 
       if (checkIn.duplicate) {
-        setState(() {
-          _step = KioskStep.duplicateVisit;
-          _returnSeconds = 4;
-        });
-        _armReturnCountdown(KioskStep.duplicateVisit, seconds: 4);
+        setState(() => _step = KioskStep.duplicateVisit);
         return;
       }
 
-      setState(() {
-        _step = KioskStep.visitSuccess;
-        _returnSeconds = 5;
-      });
-      _armReturnCountdown(KioskStep.visitSuccess, seconds: 5);
+      setState(() => _step = KioskStep.visitSuccess);
     } catch (e) {
       _showError(_customerMessage(e));
     }
   }
 
-  void _armReturnCountdown(KioskStep expected, {required int seconds}) {
-    _returnTimer?.cancel();
-    _returnSeconds = seconds;
-    _returnTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || _step != expected) {
-        timer.cancel();
-        return;
-      }
-      if (_returnSeconds <= 1) {
-        timer.cancel();
-        unawaited(_goIdle());
-        return;
-      }
-      setState(() => _returnSeconds -= 1);
+  Future<void> _cancelFaceCapture() async {
+    _countdownTimer?.cancel();
+    await _disposeCamera();
+    if (!mounted) return;
+    setState(() {
+      _countdown = KioskConfig.countdownSeconds;
+      _photoBytes = null;
+      _usingMockCamera = false;
+      _step = KioskStep.faceEnrollmentIntro;
     });
+    _bumpSession();
+  }
+
+  void _armMockCountdown() {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_countdown <= 1) {
+        timer.cancel();
+        unawaited(_snapPhoto());
+      } else {
+        setState(() => _countdown -= 1);
+      }
+    });
+  }
+
+  Future<void> _startMockCameraCapture({String? reason}) async {
+    if (reason != null) {
+      debugPrint('[kiosk] MOCK_CAMERA fallback: $reason');
+    } else {
+      debugPrint('[kiosk] MOCK_CAMERA: skipping hardware camera');
+    }
+    await _disposeCamera();
+    if (!mounted) return;
+    setState(() {
+      _usingMockCamera = true;
+      _cameraController = null;
+      _countdown = KioskConfig.countdownSeconds;
+      _step = KioskStep.faceCapture;
+    });
+    _armMockCountdown();
   }
 
   Future<void> _startCameraCapture() async {
     setState(() => _step = KioskStep.faceCapture);
     _bumpSession();
+
+    if (_preferMockCamera) {
+      await _startMockCameraCapture();
+      return;
+    }
+
     try {
       await _withCameraGate(() async {
         await _disposeCameraUnlocked();
@@ -521,35 +550,69 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
           return;
         }
         setState(() {
+          _usingMockCamera = false;
           _cameraController = controller;
           _countdown = KioskConfig.countdownSeconds;
         });
-        _countdownTimer?.cancel();
-        _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          if (!mounted) {
-            timer.cancel();
-            return;
-          }
-          if (_countdown <= 1) {
-            timer.cancel();
-            unawaited(_snapPhoto());
-          } else {
-            setState(() => _countdown -= 1);
-          }
-        });
+        _armMockCountdown();
       });
-    } catch (_) {
+    } catch (e) {
+      // Design/dev: keep flow usable when webcam fails.
+      if (kDebugMode) {
+        await _startMockCameraCapture(reason: e.toString());
+        return;
+      }
       _showError(_s.cameraUnavailableBody, camera: true);
     }
   }
 
+  Future<Uint8List> _loadMockPhotoBytes() async {
+    final data = await rootBundle.load(KioskConfig.mockCameraAsset);
+    return data.buffer.asUint8List();
+  }
+
   Future<void> _snapPhoto() async {
+    setState(() => _countdown = 0);
+
+    if (_mockCaptureActive) {
+      try {
+        final bytes = await _loadMockPhotoBytes();
+        await _disposeCamera();
+        if (!mounted) return;
+        setState(() {
+          _photoBytes = bytes;
+          _step = KioskStep.facePosePreview;
+        });
+        _bumpSession();
+      } catch (e) {
+        debugPrint('[kiosk] MOCK_CAMERA photo load failed: $e');
+        _showError(_s.cameraUnavailableBody, camera: true);
+      }
+      return;
+    }
+
     final camera = _cameraController;
     if (camera == null || !camera.value.isInitialized) {
+      if (kDebugMode) {
+        await _startMockCameraCapture(reason: 'snap without ready camera');
+        // Immediately produce mock photo for this tick.
+        try {
+          final bytes = await _loadMockPhotoBytes();
+          if (!mounted) return;
+          setState(() {
+            _usingMockCamera = true;
+            _photoBytes = bytes;
+            _step = KioskStep.facePosePreview;
+          });
+          _bumpSession();
+        } catch (_) {
+          _showError(_s.cameraUnavailableBody, camera: true);
+        }
+        return;
+      }
       _showError(_s.cameraUnavailableBody, camera: true);
       return;
     }
-    setState(() => _countdown = 0);
     try {
       final file = await camera.takePicture();
       final bytes = await file.readAsBytes();
@@ -560,7 +623,21 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
         _step = KioskStep.facePosePreview;
       });
       _bumpSession();
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) {
+        try {
+          final bytes = await _loadMockPhotoBytes();
+          await _disposeCamera();
+          if (!mounted) return;
+          setState(() {
+            _usingMockCamera = true;
+            _photoBytes = bytes;
+            _step = KioskStep.facePosePreview;
+          });
+          _bumpSession();
+          return;
+        } catch (_) {}
+      }
       _showError(_s.cameraUnavailableBody, camera: true);
     }
   }
@@ -619,9 +696,7 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
         _step = KioskStep.faceCompleted;
         _enrollPhotos.clear();
         _photoBytes = null;
-        _returnSeconds = 4;
       });
-      _armReturnCountdown(KioskStep.faceCompleted, seconds: 4);
     } catch (e) {
       _showError(_customerMessage(e));
     }
@@ -713,7 +788,6 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
           verifying: _step == KioskStep.verifyingRfid,
           registerFlow: _registerFlow,
           onCancel: () => unawaited(_goIdle()),
-          onHelp: () => setState(() => _step = KioskStep.help),
           scannerController: _scannerController,
           onDetect: _onQrDetect,
           showScanner: _awaitingRfid && _hardwareReady,
@@ -721,69 +795,61 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       case KioskStep.rfidUnregistered:
         return UnregisteredPage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           onRegister: () {
             _rfidFocus.unfocus();
             setState(() {
               _registerFlow = true;
-              _step = KioskStep.registrationName;
+              _step = KioskStep.registration;
             });
             _bumpSession();
           },
           onCancel: () => unawaited(_goIdle()),
         );
-      case KioskStep.registrationName:
-        return RegisterNamePage(
+      case KioskStep.registration:
+        return RegisterProfilePage(
           strings: _s,
-          initial: _draft?.name ?? '',
-          onContinue: (name) {
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
+          initialName: _draft?.name ?? '',
+          initialEmail: _draft?.email,
+          initialPhone: _draft?.phone,
+          onContinue: (name, email, phone) {
             setState(() {
               _draft = RegisterDraft(
                 name: name,
-                email: _draft?.email,
-                phone: _draft?.phone,
-              );
-              _step = KioskStep.registrationContact;
-            });
-            _bumpSession();
-          },
-          onCancel: () => unawaited(_goIdle()),
-        );
-      case KioskStep.registrationContact:
-        return RegisterContactPage(
-          strings: _s,
-          initialEmail: _draft?.email,
-          initialPhone: _draft?.phone,
-          onContinue: (email, phone) {
-            setState(() {
-              _draft = RegisterDraft(
-                name: _draft?.name ?? '',
                 email: email,
                 phone: phone,
               );
             });
             unawaited(_createAccountThenEnroll());
           },
-          onBack: () {
-            setState(() => _step = KioskStep.registrationName);
-            _bumpSession();
-          },
+          onCancel: () => unawaited(_goIdle()),
         );
       case KioskStep.faceEnrollmentIntro:
         return FaceEnrollmentIntroPage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           requiredExisting: _enrollmentForExisting,
           onStart: () => unawaited(_startCameraCapture()),
+          onBack: () => unawaited(_goIdle()),
         );
       case KioskStep.faceCapture:
         final copy = _poseCopy;
         return _CameraCaptureView(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           controller: _cameraController,
           countdown: _countdown,
+          countdownMax: KioskConfig.countdownSeconds,
           title: copy.$1,
-          instruction: copy.$2,
-          poseIndex: _enrollIndex,
-          completed: _enrollPhotos.keys.toSet(),
+          instruction: _s.keepFace,
+          mockCamera: _mockCaptureActive,
+          onCancel: () => unawaited(_cancelFaceCapture()),
+          onBack: () => unawaited(_cancelFaceCapture()),
         );
       case KioskStep.facePosePreview:
         return PhotoPreviewPage(
@@ -816,7 +882,8 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       case KioskStep.faceCompleted:
         return EnrollmentCompletePage(
           strings: _s,
-          countdown: _returnSeconds,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           onDone: () => unawaited(_goIdle()),
         );
       case KioskStep.visitCreating:
@@ -827,33 +894,41 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       case KioskStep.visitSuccess:
         return VisitSuccessPage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           name: _checkIn?.memberName ?? _lookup?.user?.name ?? '',
           pointsAwarded: _checkIn?.pointsAwarded ?? 0,
           pointsBalance: _checkIn?.pointsBalance ?? 0,
-          countdown: _returnSeconds,
           onDone: () => unawaited(_goIdle()),
         );
       case KioskStep.duplicateVisit:
         return DuplicateCheckInPage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           name: _checkIn?.memberName ?? _lookup?.user?.name,
-          countdown: _returnSeconds,
           onHome: () => unawaited(_goIdle()),
         );
       case KioskStep.cameraError:
         return CameraErrorPage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           onRetry: () => unawaited(_startCameraCapture()),
           onHome: () => unawaited(_goIdle()),
         );
       case KioskStep.sessionTimeout:
         return TimeoutPage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           onStart: () => unawaited(_goIdle()),
         );
       case KioskStep.offline:
         return OfflinePage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           onRetry: () async {
             await _pollHealth();
             if (_serverOnline) {
@@ -865,12 +940,19 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
       case KioskStep.error:
         return ErrorPage(
           strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
           message: _errorMessage ?? _s.couldNotCheckIn,
           onRetry: () => unawaited(_retryFromError()),
           onCancel: () => unawaited(_goIdle()),
         );
       case KioskStep.help:
-        return HelpPage(strings: _s, onBack: () => unawaited(_goIdle()));
+        return HelpPage(
+          strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
+          onBack: () => unawaited(_goIdle()),
+        );
     }
   }
 }
@@ -878,117 +960,385 @@ class _KioskFlowPageState extends State<KioskFlowPage> {
 class _CameraCaptureView extends StatelessWidget {
   const _CameraCaptureView({
     required this.strings,
+    required this.lang,
+    required this.onLangChanged,
     required this.controller,
     required this.countdown,
+    required this.countdownMax,
     required this.title,
     required this.instruction,
-    required this.poseIndex,
-    required this.completed,
+    required this.mockCamera,
+    required this.onCancel,
+    required this.onBack,
   });
 
   final KioskStrings strings;
+  final KioskLang lang;
+  final ValueChanged<KioskLang> onLangChanged;
   final CameraController? controller;
   final int countdown;
+  final int countdownMax;
   final String title;
   final String instruction;
-  final int poseIndex;
-  final Set<String> completed;
+  final bool mockCamera;
+  final VoidCallback onCancel;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
-    final ready = controller != null && controller!.value.isInitialized;
-    final overlay = countdown <= 0 ? strings.capture : '$countdown';
-    return KioskScaffold(
-      dark: true,
-      child: Column(
-        children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            instruction,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          PoseProgressBar(
-            strings: strings,
-            currentIndex: poseIndex,
-            completed: completed,
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: AppRadius.lg,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (ready)
-                    FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: controller!.value.previewSize?.height ?? 720,
-                        height: controller!.value.previewSize?.width ?? 1280,
-                        child: CameraPreview(controller!),
-                      ),
-                    )
-                  else
-                    const ColoredBox(
-                      color: Color(0xFF1A1A1A),
-                      child: Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      ),
-                    ),
-                  CustomPaint(painter: _FaceGuidePainter()),
-                  Center(
-                    child: Text(
-                      overlay,
-                      style: TextStyle(
-                        fontSize: countdown <= 0 ? 42 : 96,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        shadows: const [
-                          Shadow(blurRadius: 18, color: Colors.black54),
-                        ],
-                      ),
+    final ready = !mockCamera &&
+        controller != null &&
+        controller!.value.isInitialized;
+    final progress = countdownMax <= 0
+        ? 1.0
+        : ((countdownMax - countdown + 1) / countdownMax).clamp(0.0, 1.0);
+
+    return ColoredBox(
+      color: Colors.white,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            KioskAppHeader(
+              title: title,
+              lang: lang,
+              onLangChanged: onLangChanged,
+              onBack: onBack,
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                    child: Column(
+                      children: [
+                        Text(
+                          instruction,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            height: 1.45,
+                            color: Color(0xFF6D6E73),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Expanded(
+                          child: Center(
+                            child: SizedBox(
+                              width: 360,
+                              height: 360,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.center,
+                                children: [
+                                  Positioned(
+                                    left: -20,
+                                    top: 120,
+                                    child: _CountdownRing(
+                                      size: 80,
+                                      progress: progress,
+                                      label:
+                                          countdown <= 0 ? '✓' : '$countdown',
+                                    ),
+                                  ),
+                                  _FaceCaptureFrame(
+                                    size: 280,
+                                    mobile: false,
+                                    child: _CameraCirclePreview(
+                                      ready: ready,
+                                      mockCamera: mockCamera,
+                                      controller: controller,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: OutlinedButton(
+                            onPressed: onCancel,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            child: Text(strings.cancel),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            strings.keepFace,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _FaceGuidePainter extends CustomPainter {
+class _CountdownRing extends StatelessWidget {
+  const _CountdownRing({
+    required this.size,
+    required this.progress,
+    required this.label,
+  });
+
+  final double size;
+  final double progress;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _CountdownRingPainter(progress: progress),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: size * 0.42,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CountdownRingPainter extends CustomPainter {
+  _CountdownRingPainter({required this.progress});
+
+  final double progress;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final oval = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height * 0.48),
-      width: size.width * 0.58,
-      height: size.height * 0.62,
-    );
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.85)
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final track = Paint()
+      ..color = AppColors.primary.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawOval(oval, paint);
+      ..strokeWidth = size.width * 0.1
+      ..strokeCap = StrokeCap.round;
+    final active = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.1
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius - track.strokeWidth / 2, track);
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: center,
+        radius: radius - active.strokeWidth / 2,
+      ),
+      -1.5708,
+      6.2832 * progress.clamp(0.05, 1.0),
+      false,
+      active,
+    );
+
+    final fill = Paint()..color = Colors.white;
+    canvas.drawCircle(center, radius - track.strokeWidth - 2, fill);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CountdownRingPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+class _FaceCaptureFrame extends StatelessWidget {
+  const _FaceCaptureFrame({
+    required this.size,
+    required this.mobile,
+    required this.child,
+  });
+
+  final double size;
+  final bool mobile;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final corner = mobile ? 40.0 : 58.0;
+    final borderW = mobile ? 5.0 : 7.0;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: size * 0.84,
+            height: size * 0.84,
+            child: child,
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: _corner(corner, borderW, top: true, left: true),
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: _corner(corner, borderW, top: true, left: false),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            child: _corner(corner, borderW, top: false, left: true),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: _corner(corner, borderW, top: false, left: false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _corner(
+    double size,
+    double borderW, {
+    required bool top,
+    required bool left,
+  }) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.only(
+            topLeft: top && left ? const Radius.circular(10) : Radius.zero,
+            topRight: top && !left ? const Radius.circular(10) : Radius.zero,
+            bottomLeft: !top && left ? const Radius.circular(10) : Radius.zero,
+            bottomRight:
+                !top && !left ? const Radius.circular(10) : Radius.zero,
+          ),
+          border: Border(
+            top: top
+                ? BorderSide(color: AppColors.primary, width: borderW)
+                : BorderSide.none,
+            bottom: !top
+                ? BorderSide(color: AppColors.primary, width: borderW)
+                : BorderSide.none,
+            left: left
+                ? BorderSide(color: AppColors.primary, width: borderW)
+                : BorderSide.none,
+            right: !left
+                ? BorderSide(color: AppColors.primary, width: borderW)
+                : BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CameraCirclePreview extends StatelessWidget {
+  const _CameraCirclePreview({
+    required this.ready,
+    required this.mockCamera,
+    required this.controller,
+  });
+
+  final bool ready;
+  final bool mockCamera;
+  final CameraController? controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFFEDEDED),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 30,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ready
+          ? FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: controller!.value.previewSize?.height ?? 720,
+                height: controller!.value.previewSize?.width ?? 1280,
+                child: CameraPreview(controller!),
+              ),
+            )
+          : mockCamera
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      KioskConfig.mockCameraAsset,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const ColoredBox(
+                          color: Color(0xFFEEF7F5),
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 72,
+                            color: AppColors.primary,
+                          ),
+                        );
+                      },
+                    ),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        width: double.infinity,
+                        color: Colors.black54,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: const Text(
+                          'MOCK CAMERA',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : const ColoredBox(
+                  color: Color(0xFFF2F2F2),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2.4,
+                    ),
+                  ),
+                ),
+    );
+  }
 }

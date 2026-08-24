@@ -76,8 +76,8 @@ class CheckInRecord {
     }
 
     final resultCode = json['result_code']?.toString().toUpperCase() ?? '';
-    final duplicate = json['duplicate'] == true ||
-        resultCode == 'ALREADY_CHECKED_IN';
+    final duplicate =
+        json['duplicate'] == true || resultCode == 'ALREADY_CHECKED_IN';
 
     return CheckInRecord(
       id: (json['id'] as num).toInt(),
@@ -88,10 +88,12 @@ class CheckInRecord {
       status: json['status']?.toString() ?? 'FAIL',
       pointsAwarded: awarded ?? 0,
       pointsBalance: balance ?? 0,
-      alreadyCheckedInToday: json['already_checked_in_today'] == true || duplicate,
+      alreadyCheckedInToday:
+          json['already_checked_in_today'] == true || duplicate,
       duplicate: duplicate,
       checkedInAt: json['checked_in_at']?.toString(),
-      memberName: json['member_name']?.toString() ??
+      memberName:
+          json['member_name']?.toString() ??
           (json['user'] is Map ? json['user']['name']?.toString() : null),
       memberCode: json['member_code']?.toString(),
     );
