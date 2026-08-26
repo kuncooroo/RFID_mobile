@@ -31,13 +31,13 @@ class DatabaseSeeder extends Seeder
 
         $this->call(AdminSeeder::class);
 
-        if (User::query()->where('email', 'demo@kutuku.test')->exists()) {
+        if (User::query()->where('email', 'demo@tapgo.test')->exists()) {
             return;
         }
 
         $user = User::query()->create([
             'name' => 'Demo User',
-            'email' => 'demo@kutuku.test',
+            'email' => 'demo@tapgo.test',
             'phone' => '+10000000001',
             'password' => Hash::make('password'),
             'role' => 'visitor',
@@ -104,9 +104,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $store = Store::query()->create([
-            'name' => 'Kutuku Official',
-            'slug' => 'kutuku-official',
-            'description' => 'Official Kutuku store',
+            'name' => 'TapGo Official',
+            'slug' => 'tapgo-official',
+            'description' => 'Official TapGo store',
             'is_verified' => true,
             'rating_avg' => 4.8,
             'location' => 'Jakarta',
@@ -140,7 +140,7 @@ class DatabaseSeeder extends Seeder
                 'category_id' => $categories[$i % $categories->count()]->id,
                 'name' => "Demo Product {$i}",
                 'slug' => 'demo-product-'.$i.'-'.Str::random(4),
-                'brand' => 'Kutuku',
+                'brand' => 'TapGo',
                 'description' => 'Sample product seeded for API development.',
                 'price' => 49.99 + $i,
                 'discount_price' => $i % 2 === 0 ? 39.99 + $i : null,

@@ -1,11 +1,12 @@
-# RFID — Kutuku Mobile + Laravel API
+# RFID — TapGo Mobile + Laravel API
 
 Aplikasi e-commerce RFID berbasis **Flutter** (mobile) dan **Laravel 12** (REST API + Sanctum).
 
-| Bagian | Path | Stack |
-|--------|------|--------|
-| Mobile app | `mobile/` | Flutter · Riverpod · GoRouter · Dio |
-| Backend API | `backend/` | Laravel 12 · MySQL · Sanctum |
+| Bagian | Path | Nama | Stack |
+|--------|------|------|--------|
+| Mobile app (user) | `tapgo_app/` | **TapGo** / **TapGo App** | Flutter · Riverpod · GoRouter · Dio |
+| Kiosk (system) | `tapgo_system/` | **TapGo System** | Flutter · Camera · Scanner |
+| Backend / Admin | `backend/` | **TapGo Admin** | Laravel 12 · MySQL · Sanctum |
 
 Dokumentasi terkait:
 
@@ -48,7 +49,7 @@ Pastikan sudah terpasang:
 
 ### Mobile
 
-- **Flutter Stable** (SDK `^3.9.2` — cek `mobile/pubspec.yaml`)
+- **Flutter Stable** (SDK `^3.9.2` — cek `tapgo_app/pubspec.yaml`)
 - Android Studio + Android SDK (untuk emulator/device)
 - Xcode (hanya jika build iOS di macOS)
 
@@ -76,7 +77,7 @@ Struktur setelah clone:
 
 ```text
 rfid/
-├── mobile/          # Flutter app
+├── tapgo_app/          # Flutter app
 ├── backend/         # Laravel API
 ├── REVIEW.md
 └── README.md
@@ -137,7 +138,7 @@ php artisan storage:link
 
 > Seeder hanya berjalan di environment `local` / `testing`.
 >
-> Demo seed sekarang mencakup **alamat + metode pembayaran** untuk `demo@kutuku.test`, selain katalog produk.
+> Demo seed sekarang mencakup **alamat + metode pembayaran** untuk `demo@tapgo.test`, selain katalog produk.
 
 ### 3.5 Jalankan API
 
@@ -164,7 +165,7 @@ curl http://127.0.0.1:8000/api/v1/home
 Buka terminal baru:
 
 ```bash
-cd mobile
+cd tapgo_app
 flutter pub get
 ```
 
@@ -203,21 +204,21 @@ Untuk development HTTP lokal, pastikan debug manifest mengizinkan cleartext (bia
 ### Flutter — Android emulator
 
 ```bash
-cd mobile
+cd tapgo_app
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
 ### Flutter — iOS simulator
 
 ```bash
-cd mobile
+cd tapgo_app
 flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
 ### Flutter — device fisik
 
 ```bash
-cd mobile
+cd tapgo_app
 flutter run --dart-define=API_BASE_URL=http://192.168.x.x:8000/api/v1
 ```
 
@@ -241,7 +242,7 @@ Setelah `php artisan migrate --seed`:
 
 | Field | Value |
 |-------|--------|
-| Email | `demo@kutuku.test` |
+| Email | `demo@tapgo.test` |
 | Password | `password` |
 | RFID member | `MEM-1001` / `RFID-DEMO-001` |
 
@@ -251,7 +252,7 @@ Login API:
 curl -X POST http://127.0.0.1:8000/api/v1/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d "{\"identifier\":\"demo@kutuku.test\",\"password\":\"password\"}"
+  -d "{\"identifier\":\"demo@tapgo.test\",\"password\":\"password\"}"
 ```
 
 ---
@@ -260,7 +261,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/login \
 
 ```text
 rfid/
-├── mobile/
+├── tapgo_app/
 │   ├── lib/
 │   │   ├── core/           # router, session
 │   │   ├── features/       # Feature First modules

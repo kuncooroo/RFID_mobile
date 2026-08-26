@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin') — Kutuku RFID</title>
+    <title>@yield('title', 'Admin') — TapGo RFID</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,12 +13,25 @@
 </head>
 
 <body class="admin-body">
-    <aside class="sidebar">
-        <div class="brand">
-            <span class="brand-mark">K</span>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+
+    <aside class="sidebar" id="admin-sidebar" aria-label="Admin navigation">
+        <div class="sidebar-mobile-head">
+            <div class="brand brand-compact">
+                <span class="brand-mark">T</span>
+                <div>
+                    <strong>TapGo Admin</strong>
+                </div>
+            </div>
+            <button type="button" class="icon-btn sidebar-close" id="sidebar-close" aria-label="Close menu">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <div class="brand brand-desktop">
+            <span class="brand-mark">T</span>
             <div>
-                <strong>Kutuku Admin</strong>
-                <!-- <small>{{ auth('admin')->user()->role?->label() }}</small> -->
+                <strong>TapGo Admin</strong>
             </div>
             <span class="brand-chevron" aria-hidden="true">▾</span>
         </div>
@@ -64,12 +77,21 @@
 
     <main class="content">
         <header class="topbar">
-            <div>
-                <h1>@yield('heading', 'Dashboard')</h1>
+            <div class="topbar-main">
+                <button type="button" class="icon-btn hamburger" id="sidebar-toggle" aria-label="Open menu" aria-controls="admin-sidebar" aria-expanded="false">
+                    <span class="hamburger-lines" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                </button>
+                <div class="topbar-titles">
+                    <h1>@yield('heading', 'Dashboard')</h1>
 
-                @hasSection('subheading')
-                <p class="muted">@yield('subheading')</p>
-                @endif
+                    @hasSection('subheading')
+                    <p class="muted">@yield('subheading')</p>
+                    @endif
+                </div>
             </div>
         </header>
 
@@ -92,6 +114,63 @@
 
     <script>
         (function() {
+            var body = document.body;
+            var sidebar = document.getElementById('admin-sidebar');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            var toggle = document.getElementById('sidebar-toggle');
+            var closeBtn = document.getElementById('sidebar-close');
+            var mq = window.matchMedia('(max-width: 980px)');
+
+            function setOpen(open) {
+                body.classList.toggle('sidebar-open', open);
+                if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (backdrop) backdrop.hidden = !open;
+                if (open) {
+                    body.style.overflow = 'hidden';
+                } else {
+                    body.style.overflow = '';
+                }
+            }
+
+            function closeSidebar() {
+                setOpen(false);
+            }
+
+            function openSidebar() {
+                setOpen(true);
+            }
+
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    if (body.classList.contains('sidebar-open')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                });
+            }
+
+            if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+            if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeSidebar();
+            });
+
+            if (sidebar) {
+                sidebar.querySelectorAll('a').forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        if (mq.matches) closeSidebar();
+                    });
+                });
+            }
+
+            function onMqChange() {
+                if (!mq.matches) closeSidebar();
+            }
+            if (mq.addEventListener) mq.addEventListener('change', onMqChange);
+            else if (mq.addListener) mq.addListener(onMqChange);
+
             var root = document.getElementById('sidebar-user');
             var trigger = document.getElementById('sidebar-user-trigger');
             if (!root || !trigger) return;

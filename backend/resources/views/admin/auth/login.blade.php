@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Admin Login — Kutuku RFID</title>
+    <title>Admin Login — TapGo RFID</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +20,7 @@
 
     <div class="login-card">
 
-        <h1 style="text-align:center;">Admin Dashboard</h1>
+        <h1 style="text-align:center;">TapGo Admin</h1>
 
         <p style="text-align:center;">
             Sign in with a staff account.

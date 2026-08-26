@@ -58,7 +58,7 @@ return new class extends Migration
 
         DB::table('kiosk_locations')->insert([
             'code' => 'MAIN',
-            'name' => 'Kutuku Main',
+            'name' => 'TapGo Main',
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),

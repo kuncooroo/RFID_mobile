@@ -341,7 +341,8 @@ class KioskService
             throw new DomainException('Kode kosong.', 422, 'kiosk_empty_code');
         }
 
-        // Support QR payloads like {"type":"kutuku_member","uid":"0182120545"}
+        // Support QR payloads like {"type":"tapgo_member","uid":"0182120545"}
+        // (also accepts legacy type "kutuku_member")
         if (str_starts_with($raw, '{')) {
             $json = json_decode($raw, true);
             if (is_array($json)) {
@@ -349,7 +350,8 @@ class KioskService
             }
         }
 
-        // Support deep-link style: kutuku://member/0182120545
+        // Support deep-link style: tapgo://member/0182120545
+        // (also accepts legacy kutuku://member/...)
         if (str_contains($raw, '/')) {
             $parts = preg_split('#[/?&=]#', $raw) ?: [];
             $candidate = end($parts);

@@ -2,7 +2,7 @@
 
 @section('title', 'Orders')
 @section('heading', 'Orders')
-@section('subheading', 'Orders placed from the Kutuku mobile app.')
+@section('subheading', 'Orders placed from the TapGo mobile app.')
 
 @section('content')
 <div class="toolbar">
