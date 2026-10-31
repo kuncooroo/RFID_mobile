@@ -100,6 +100,7 @@ class AdminSeeder extends Seeder
                     'display_name' => $user->name,
                     'membership_tier' => 'standard',
                     'points' => 100,
+                    'balance' => 100000,
                 ],
             );
 

@@ -23,6 +23,7 @@ class CheckoutService
         private readonly PaymentMethodRepositoryInterface $paymentMethods,
         private readonly OrderRepositoryInterface $orders,
         private readonly ProductRepositoryInterface $products,
+        private readonly WalletService $wallet,
     ) {
     }
 
@@ -57,7 +58,7 @@ class CheckoutService
             $subtotal = $selected->sum(fn ($i) => (float) $i->unit_price * $i->quantity);
             // Shipping/discount are server-controlled — never trust the client.
             $shipping = $subtotal >= 100 ? 0.0 : 5.0;
-            $discount = 0.0;
+            $discount = $this->wallet->consumeDiscountCredit($user, $subtotal + $shipping);
             $total = max(0, $subtotal + $shipping - $discount);
 
             /** @var Order $order */

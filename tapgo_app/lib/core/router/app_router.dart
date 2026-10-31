@@ -15,6 +15,7 @@ import '../../features/checkout/presentation/address_page.dart';
 import '../../features/checkout/presentation/checkout_success_page.dart';
 import '../../features/checkout/presentation/payment_methods_page.dart';
 import '../../features/checkout/presentation/payment_page.dart';
+import '../../features/experiences/presentation/experiences_page.dart';
 import '../../features/favorites/presentation/favorites_page.dart';
 import '../../features/search/presentation/search_page.dart';
 import '../../features/search/presentation/search_results_page.dart';
@@ -290,6 +291,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     name: 'legalPolicies',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const LegalPoliciesPage(),
+                  ),
+                  GoRoute(
+                    path: 'experiences',
+                    name: 'experiences',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const ExperiencesPage(),
                   ),
                   GoRoute(
                     path: 'settings',

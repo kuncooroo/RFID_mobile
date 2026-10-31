@@ -49,6 +49,10 @@ abstract final class ProfileNavigation {
     context.push(AppRoutes.legalPolicies);
   }
 
+  static void openExperiences(BuildContext context) {
+    context.push(AppRoutes.experiences);
+  }
+
   static void openNotifications(BuildContext context) {
     context.push(AppRoutes.notifications);
   }

@@ -303,7 +303,7 @@ class _FaceReviewCard extends StatelessWidget {
           aspectRatio: 1,
           child: Container(
             decoration: const BoxDecoration(
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.all(Radius.circular(16)),
               color: Color(0xFFECECEC),
               boxShadow: [
                 BoxShadow(
@@ -317,7 +317,7 @@ class _FaceReviewCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.memory(bytes, fit: BoxFit.cover),
+                Image.memory(bytes, fit: BoxFit.contain),
                 Positioned(
                   right: 8,
                   bottom: 8,
@@ -361,6 +361,8 @@ class VisitSuccessPage extends StatelessWidget {
     required this.pointsAwarded,
     required this.pointsBalance,
     required this.onDone,
+    this.amountCharged = 0,
+    this.walletBalance = 0,
   });
 
   final SystemStrings strings;
@@ -370,6 +372,8 @@ class VisitSuccessPage extends StatelessWidget {
   final int pointsAwarded;
   final int pointsBalance;
   final VoidCallback onDone;
+  final double amountCharged;
+  final double walletBalance;
 
   String _fmt(int n) {
     final s = n.toString();
@@ -463,7 +467,23 @@ class VisitSuccessPage extends StatelessWidget {
                         const SizedBox(height: 16),
                         _VisitInfoCard(
                           softBlue: false,
+                          icon: Icons.payments_outlined,
+                          label: strings.fareCharged,
+                          value: _fmt(amountCharged.round()),
+                          valueColor: const Color(0xFF111111),
+                        ),
+                        const SizedBox(height: 16),
+                        _VisitInfoCard(
+                          softBlue: false,
                           icon: Icons.account_balance_wallet_outlined,
+                          label: strings.remainingBalance,
+                          value: _fmt(walletBalance.round()),
+                          valueColor: const Color(0xFF111111),
+                        ),
+                        const SizedBox(height: 16),
+                        _VisitInfoCard(
+                          softBlue: true,
+                          icon: Icons.star_outline_rounded,
                           label: strings.totalBalance,
                           value: '${_fmt(pointsBalance)} ${strings.points}',
                           valueColor: const Color(0xFF111111),

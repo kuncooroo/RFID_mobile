@@ -62,6 +62,7 @@ abstract final class AppRoutes {
   static const language = '/profile/language';
   static const helpSupport = '/profile/help';
   static const legalPolicies = '/profile/legal';
+  static const experiences = '/profile/experiences';
 
   // --- RFID self-service ---
   static const rfidScan = '/rfid/scan';

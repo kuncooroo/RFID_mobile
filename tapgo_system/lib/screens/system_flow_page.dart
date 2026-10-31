@@ -34,6 +34,9 @@ enum SystemStep {
   faceReview,
   faceUploading,
   faceCompleted,
+  gateCapture,
+  gatePhotoPreview,
+  insufficientBalance,
   visitCreating,
   visitSuccess,
   duplicateVisit,
@@ -74,6 +77,7 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
   bool _serverOnline = true;
   bool _rfidLocked = false;
   bool _registerFlow = false;
+  bool _capturingGate = false;
 
   RfidLookup? _lookup;
   RegisterDraft? _draft;
@@ -177,6 +181,7 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
     _errorMessage = null;
     _enrollmentForExisting = false;
     _registerFlow = false;
+    _capturingGate = false;
     _rfidLocked = false;
     _usingMockCamera = false;
     _countdown = SystemConfig.countdownSeconds;
@@ -294,12 +299,15 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
             _showError(_s.cardAlreadyRegistered);
             return;
           }
-          if (lookup.needsFaceEnrollment) {
+          if (!lookup.canEnter) {
+            setState(() => _step = SystemStep.insufficientBalance);
+            _bumpSession();
+          } else if (lookup.needsFaceEnrollment) {
             _enrollmentForExisting = true;
             setState(() => _step = SystemStep.faceEnrollmentIntro);
             _bumpSession();
           } else {
-            unawaited(_recordVisit());
+            unawaited(_startGateCapture());
           }
         case RfidLookupCode.rfidNotRegistered:
           setState(() => _lookup = lookup);
@@ -424,11 +432,21 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
       return;
     }
     if (_lookup != null && _lookup!.isRegistered) {
+      if (!_lookup!.canEnter) {
+        setState(() => _step = SystemStep.insufficientBalance);
+        _bumpSession();
+        return;
+      }
       if (_lookup!.needsFaceEnrollment) {
         _beginEnrollment();
         return;
       }
-      unawaited(_recordVisit());
+      if (_capturingGate && _photoBytes != null) {
+        setState(() => _step = SystemStep.gatePhotoPreview);
+        _bumpSession();
+        return;
+      }
+      unawaited(_startGateCapture());
       return;
     }
     if (_lookup != null && !_lookup!.isRegistered) {
@@ -439,7 +457,12 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
     await _goIdle();
   }
 
-  Future<void> _recordVisit() async {
+  Future<void> _startGateCapture() async {
+    _capturingGate = true;
+    await _startCameraCapture(step: SystemStep.gateCapture);
+  }
+
+  Future<void> _recordVisit({List<int>? photo}) async {
     final lookup = _lookup;
     if (lookup == null || !lookup.isRegistered) {
       _showError(_s.genericError);
@@ -450,8 +473,16 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
     _bumpSession();
 
     try {
-      final checkIn = await _visits.recordVisit(rfidUid: lookup.rfidUid);
+      final checkIn = await _visits.recordVisit(
+        rfidUid: lookup.rfidUid,
+        photo: photo,
+      );
       if (!mounted) return;
+      if (checkIn.denied) {
+        setState(() => _step = SystemStep.insufficientBalance);
+        _bumpSession();
+        return;
+      }
       if (!checkIn.succeeded) {
         _showError(_s.checkInFailed);
         return;
@@ -499,7 +530,10 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
     });
   }
 
-  Future<void> _startMockCameraCapture({String? reason}) async {
+  Future<void> _startMockCameraCapture({
+    String? reason,
+    SystemStep step = SystemStep.faceCapture,
+  }) async {
     if (reason != null) {
       debugPrint('[kiosk] MOCK_CAMERA fallback: $reason');
     } else {
@@ -511,17 +545,19 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
       _usingMockCamera = true;
       _cameraController = null;
       _countdown = SystemConfig.countdownSeconds;
-      _step = SystemStep.faceCapture;
+      _step = step;
     });
     _armCaptureCountdown();
   }
 
-  Future<void> _startCameraCapture() async {
-    setState(() => _step = SystemStep.faceCapture);
+  Future<void> _startCameraCapture({
+    SystemStep step = SystemStep.faceCapture,
+  }) async {
+    setState(() => _step = step);
     _bumpSession();
 
     if (_preferMockCamera) {
-      await _startMockCameraCapture();
+      await _startMockCameraCapture(step: step);
       return;
     }
 
@@ -577,7 +613,9 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
         if (!mounted) return;
         setState(() {
           _photoBytes = bytes;
-          _step = SystemStep.facePosePreview;
+          _step = _capturingGate
+              ? SystemStep.gatePhotoPreview
+              : SystemStep.facePosePreview;
         });
         _bumpSession();
       } catch (e) {
@@ -599,7 +637,9 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
       if (!mounted) return;
       setState(() {
         _photoBytes = bytes;
-        _step = SystemStep.facePosePreview;
+        _step = _capturingGate
+            ? SystemStep.gatePhotoPreview
+            : SystemStep.facePosePreview;
       });
       _bumpSession();
     } catch (e) {
@@ -851,6 +891,39 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
           title: _s.savingIdentity,
           message: _s.pleaseWait,
         );
+      case SystemStep.gateCapture:
+        return _CameraCaptureView(
+          strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
+          controller: _cameraController,
+          countdown: _countdown,
+          countdownMax: SystemConfig.countdownSeconds,
+          title: _s.captureVisitTitle,
+          instruction: _s.captureVisitBody,
+          headerTitle: _s.takeAPhoto,
+          mockCamera: _mockCaptureActive,
+          onCancel: () => unawaited(_goIdle()),
+          onBack: () => unawaited(_goIdle()),
+        );
+      case SystemStep.gatePhotoPreview:
+        return PhotoPreviewPage(
+          strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
+          photoBytes: _photoBytes!,
+          onUsePhoto: () => unawaited(_recordVisit(photo: _photoBytes)),
+          onRetake: () => unawaited(_startGateCapture()),
+        );
+      case SystemStep.insufficientBalance:
+        return ErrorPage(
+          strings: _s,
+          lang: _lang,
+          onLangChanged: (lang) => setState(() => _lang = lang),
+          message: _s.insufficientBalance,
+          onRetry: () => unawaited(_goIdle()),
+          onCancel: () => unawaited(_goIdle()),
+        );
       case SystemStep.faceCompleted:
         return EnrollmentCompletePage(
           strings: _s,
@@ -871,6 +944,8 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
           name: _checkIn?.memberName ?? _lookup?.user?.name ?? '',
           pointsAwarded: _checkIn?.pointsAwarded ?? 0,
           pointsBalance: _checkIn?.pointsBalance ?? 0,
+          amountCharged: _checkIn?.amountCharged ?? 0,
+          walletBalance: _checkIn?.walletBalance ?? 0,
           onDone: () => unawaited(_goIdle()),
         );
       case SystemStep.duplicateVisit:
@@ -886,7 +961,9 @@ class _SystemFlowPageState extends State<SystemFlowPage> {
           strings: _s,
           lang: _lang,
           onLangChanged: (lang) => setState(() => _lang = lang),
-          onRetry: () => unawaited(_startCameraCapture()),
+          onRetry: () => unawaited(
+            _capturingGate ? _startGateCapture() : _startCameraCapture(),
+          ),
           onHome: () => unawaited(_goIdle()),
         );
       case SystemStep.sessionTimeout:
@@ -976,45 +1053,32 @@ class _CameraCaptureView extends StatelessWidget {
       footer: SecondaryButton(label: strings.cancel, onPressed: onCancel),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final cameraSize = (constraints.maxHeight - 120)
-              .clamp(220.0, 360.0)
-              .toDouble();
-          final ringSize = (cameraSize * 0.22).clamp(64.0, 88.0);
+          final ringSize = 72.0;
 
           return Column(
             children: [
               SystemPageHeading(title: title, subtitle: instruction),
               const SizedBox(height: 16),
               Expanded(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: SizedBox(
-                    width: cameraSize + 36,
-                    height: cameraSize,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.center,
-                      children: [
-                        _FaceCaptureFrame(
-                          size: cameraSize * 0.86,
-                          child: _CameraCirclePreview(
-                            ready: ready,
-                            mockCamera: mockCamera,
-                            controller: controller,
-                          ),
-                        ),
-                        Positioned(
-                          left: 0,
-                          top: cameraSize * 0.34,
-                          child: _CountdownRing(
-                            size: ringSize,
-                            progress: progress,
-                            label: countdown <= 0 ? '✓' : '$countdown',
-                          ),
-                        ),
-                      ],
+                child: Stack(
+                  alignment: Alignment.bottomLeft,
+                  children: [
+                    Positioned.fill(
+                      child: _CameraFramePreview(
+                        ready: ready,
+                        mockCamera: mockCamera,
+                        controller: controller,
+                      ),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: _CountdownRing(
+                        size: ringSize,
+                        progress: progress,
+                        label: countdown <= 0 ? '✓' : '$countdown',
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1099,96 +1163,8 @@ class _CountdownRingPainter extends CustomPainter {
       oldDelegate.progress != progress;
 }
 
-class _FaceCaptureFrame extends StatelessWidget {
-  const _FaceCaptureFrame({
-    required this.size,
-    required this.child,
-  });
-
-  final double size;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    const corner = 48.0;
-    const borderW = 6.0;
-
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: size * 0.84,
-            height: size * 0.84,
-            child: child,
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            child: _corner(corner, borderW, top: true, left: true),
-          ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: _corner(corner, borderW, top: true, left: false),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            child: _corner(corner, borderW, top: false, left: true),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: _corner(corner, borderW, top: false, left: false),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _corner(
-    double size,
-    double borderW, {
-    required bool top,
-    required bool left,
-  }) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.only(
-            topLeft: top && left ? const Radius.circular(10) : Radius.zero,
-            topRight: top && !left ? const Radius.circular(10) : Radius.zero,
-            bottomLeft: !top && left ? const Radius.circular(10) : Radius.zero,
-            bottomRight:
-                !top && !left ? const Radius.circular(10) : Radius.zero,
-          ),
-          border: Border(
-            top: top
-                ? BorderSide(color: AppColors.primary, width: borderW)
-                : BorderSide.none,
-            bottom: !top
-                ? BorderSide(color: AppColors.primary, width: borderW)
-                : BorderSide.none,
-            left: left
-                ? BorderSide(color: AppColors.primary, width: borderW)
-                : BorderSide.none,
-            right: !left
-                ? BorderSide(color: AppColors.primary, width: borderW)
-                : BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CameraCirclePreview extends StatelessWidget {
-  const _CameraCirclePreview({
+class _CameraFramePreview extends StatelessWidget {
+  const _CameraFramePreview({
     required this.ready,
     required this.mockCamera,
     required this.controller,
@@ -1200,75 +1176,79 @@ class _CameraCirclePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFFEDEDED),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 30,
-            offset: Offset(0, 12),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ready
-          ? FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: controller!.value.previewSize?.height ?? 720,
-                height: controller!.value.previewSize?.width ?? 1280,
-                child: CameraPreview(controller!),
-              ),
-            )
-          : mockCamera
-              ? Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(
-                      SystemConfig.mockCameraAsset,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const ColoredBox(
-                          color: Color(0xFFEEF7F5),
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 72,
-                            color: AppColors.primary,
-                          ),
-                        );
-                      },
-                    ),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        width: double.infinity,
-                        color: Colors.black54,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: const Text(
-                          'MOCK CAMERA',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
+    return ClipRRect(
+      borderRadius: const BorderRadius.all(Radius.circular(16)),
+      child: ColoredBox(
+        color: const Color(0xFF111111),
+        child: ready
+            ? _FullCameraPreview(controller: controller!)
+            : mockCamera
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        SystemConfig.mockCameraAsset,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const ColoredBox(
+                            color: Color(0xFFEEF7F5),
+                            child: Icon(
+                              Icons.person_rounded,
+                              size: 72,
+                              color: AppColors.primary,
+                            ),
+                          );
+                        },
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          width: double.infinity,
+                          color: Colors.black54,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: const Text(
+                            'MOCK CAMERA',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                )
-              : const ColoredBox(
-                  color: Color(0xFFF2F2F2),
-                  child: Center(
+                    ],
+                  )
+                : const Center(
                     child: CircularProgressIndicator(
                       color: AppColors.primary,
                       strokeWidth: 2.4,
                     ),
                   ),
-                ),
+      ),
+    );
+  }
+}
+
+/// Shows the sensor frame without a circular crop.
+class _FullCameraPreview extends StatelessWidget {
+  const _FullCameraPreview({required this.controller});
+
+  final CameraController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = controller.value.previewSize;
+    final aspect = preview == null || preview.width == 0 || preview.height == 0
+        ? 3 / 4
+        : preview.height / preview.width;
+
+    return Center(
+      child: AspectRatio(
+        aspectRatio: aspect,
+        child: CameraPreview(controller),
+      ),
     );
   }
 }

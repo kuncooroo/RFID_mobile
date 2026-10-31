@@ -42,6 +42,14 @@ class ProfileHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Saldo ${_formatSaldo(member.balance)}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               if (member.membershipTier != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Container(
@@ -121,6 +129,17 @@ class ProfileStatsRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatSaldo(double value) {
+  final digits = value.round().abs().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < digits.length; i++) {
+    final fromEnd = digits.length - i;
+    if (i != 0 && fromEnd % 3 == 0) buf.write('.');
+    buf.write(digits[i]);
+  }
+  return buf.toString();
 }
 
 class _StatTile extends StatelessWidget {

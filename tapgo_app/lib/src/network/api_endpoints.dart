@@ -30,6 +30,8 @@ abstract final class ApiEndpoints {
   static const notifications = '/notifications';
   static const notificationsReadAll = '/notifications/read-all';
   static const rfidVerify = '/rfid/verify';
+  static const experiences = '/experiences';
+  static const redeemPoints = '/points/redeem';
 
   static String category(String id) => '/categories/$id';
   static String categoryProducts(String id) => '/categories/$id/products';
@@ -49,4 +51,5 @@ abstract final class ApiEndpoints {
   static String conversationRead(String id) => '/conversations/$id/read';
   static String notificationRead(String id) => '/notifications/$id/read';
   static String rfidVerification(String id) => '/rfid/verifications/$id';
+  static String experiencePhoto(int id) => '/experiences/$id/photo';
 }

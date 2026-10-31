@@ -14,6 +14,9 @@ class KioskCheckIn extends Model
         'presence_id',
         'status',
         'points_awarded',
+        'amount_charged',
+        'balance_after',
+        'deny_reason',
         'checked_in_at',
     ];
 
@@ -21,6 +24,8 @@ class KioskCheckIn extends Model
     {
         return [
             'points_awarded' => 'integer',
+            'amount_charged' => 'decimal:2',
+            'balance_after' => 'decimal:2',
             'checked_in_at' => 'datetime',
         ];
     }

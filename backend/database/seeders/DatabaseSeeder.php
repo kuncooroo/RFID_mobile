@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
             'display_name' => 'Demo User',
             'membership_tier' => 'gold',
             'points' => 1200,
+            'balance' => 100000,
         ]);
 
         UserSetting::query()->create([

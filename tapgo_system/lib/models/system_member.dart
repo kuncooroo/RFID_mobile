@@ -5,6 +5,7 @@ class SystemUser {
     this.email,
     this.phone,
     this.points = 0,
+    this.balance = 0,
   });
 
   final int userId;
@@ -12,6 +13,7 @@ class SystemUser {
   final String? email;
   final String? phone;
   final int points;
+  final double balance;
 
   factory SystemUser.fromJson(Map<String, dynamic> json) {
     return SystemUser(
@@ -20,6 +22,7 @@ class SystemUser {
       email: json['email']?.toString(),
       phone: json['phone']?.toString(),
       points: (json['points'] as num?)?.toInt() ?? 0,
+      balance: (json['balance'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -47,6 +50,9 @@ class RfidLookup {
     this.message,
     this.faceEnrolled = false,
     this.needsFaceEnrollment = false,
+    this.balance = 0,
+    this.fareAmount = 0,
+    this.canEnter = false,
   });
 
   final RfidCardStatus status;
@@ -60,6 +66,9 @@ class RfidLookup {
   final String? message;
   final bool faceEnrolled;
   final bool needsFaceEnrollment;
+  final double balance;
+  final double fareAmount;
+  final bool canEnter;
 
   bool get isRegistered =>
       resultCode == RfidLookupCode.memberFound && user != null;
@@ -100,6 +109,9 @@ class RfidLookup {
       message: message,
       faceEnrolled: faceEnrolled,
       needsFaceEnrollment: needsEnrollment,
+      balance: (json['balance'] as num?)?.toDouble() ?? user?.balance ?? 0,
+      fareAmount: (json['fare_amount'] as num?)?.toDouble() ?? 0,
+      canEnter: json['can_enter'] == true,
     );
   }
 }

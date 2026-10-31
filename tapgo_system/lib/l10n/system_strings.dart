@@ -184,7 +184,18 @@ class SystemStrings {
   String get youEarned => isId ? 'Anda mendapatkan' : 'You earned';
   String pointsPlus(int n) => '+$n ${isId ? 'POIN' : 'POINTS'}';
   String get points => isId ? 'POIN' : 'POINTS';
-  String get totalBalance => isId ? 'Total Poin' : 'Total Balance';
+  String get totalBalance => isId ? 'Total Poin' : 'Total Points';
+  String get fareCharged => isId ? 'Saldo terpotong' : 'Balance charged';
+  String get remainingBalance => isId ? 'Sisa saldo' : 'Remaining balance';
+  String get captureVisitTitle =>
+      isId ? 'Foto kunjungan' : 'Visit photo';
+  String get captureVisitBody => isId
+      ? 'Hadap kamera. Foto ini masuk ke experience Anda.'
+      : 'Face the camera. This photo is saved to your experience.';
+  String get insufficientBalance => isId
+      ? 'Saldo tidak cukup untuk masuk. Isi saldo di loket.'
+      : 'Not enough balance to enter. Please top up at the counter.';
+  String get gateClosed => isId ? 'Gerbang tertutup' : 'Gate closed';
   String get yourTotal => isId ? 'Total' : 'Total';
   String get thanksVisit =>
       isId ? 'Terima kasih atas kunjungannya!' : 'Thanks for visiting!';

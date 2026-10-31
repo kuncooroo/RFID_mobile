@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\Catalog\CategoryController;
 use App\Http\Controllers\Api\Checkout\AddressController;
 use App\Http\Controllers\Api\Checkout\CheckoutController;
 use App\Http\Controllers\Api\Checkout\PaymentMethodController;
+use App\Http\Controllers\Api\Experience\ExperienceController;
 use App\Http\Controllers\Api\Favorite\FavoriteController;
+use App\Http\Controllers\Api\Points\PointRedeemController;
 use App\Http\Controllers\Api\Home\HomeController;
 use App\Http\Controllers\Api\Kiosk\KioskController;
 use App\Http\Controllers\Api\Messaging\ConversationController;
@@ -109,6 +111,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
         Route::post('/reviews', [ProductController::class, 'storeReview']);
+
+        Route::get('/experiences', [ExperienceController::class, 'index']);
+        Route::get('/experiences/{checkIn}/photo', [ExperienceController::class, 'photo']);
+        Route::post('/points/redeem', [PointRedeemController::class, 'store'])->middleware('throttle:20,1');
 
         Route::post('/rfid/verify', [RfidVerificationController::class, 'verify'])
             ->middleware('throttle:10,1');

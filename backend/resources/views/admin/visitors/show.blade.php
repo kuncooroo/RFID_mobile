@@ -12,8 +12,16 @@
 
 <div class="visitor-meta" style="border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 18px;">
     <div class="visitor-meta-item">
+        <span>Saldo</span>
+        <strong>{{ number_format((float) ($visitor->member?->balance ?? 0), 0, ',', '.') }}</strong>
+    </div>
+    <div class="visitor-meta-item">
         <span>Points</span>
         <strong>{{ (int) ($visitor->member?->points ?? 0) }}</strong>
+    </div>
+    <div class="visitor-meta-item">
+        <span>Diskon tersimpan</span>
+        <strong>{{ number_format((float) ($visitor->member?->discount_credit ?? 0), 2, ',', '.') }}</strong>
     </div>
     <div class="visitor-meta-item">
         <span>Visits</span>
@@ -27,6 +35,23 @@
         <span>RFID</span>
         <strong style="font-size: 14px;"><code>{{ $visitor->rfidMember?->rfid_uid ?? 'Not bound' }}</code></strong>
     </div>
+</div>
+
+<div class="panel" style="margin-bottom: 18px;">
+    <div class="panel-header">
+        <h2>Top up saldo</h2>
+    </div>
+    <form method="POST" action="{{ route('admin.visitors.topup', $visitor) }}" class="form-grid">
+        @csrf
+        <label>
+            Nominal
+            <input type="number" name="amount" min="0.01" step="0.01" required placeholder="10000">
+        </label>
+        <div class="actions" style="align-self: end;">
+            <button class="btn" type="submit">Tambah saldo</button>
+        </div>
+    </form>
+    <p class="muted" style="margin: 12px 0 0;">{{ $pointsRate }} poin = 1 diskon di checkout aplikasi user.</p>
 </div>
 
 <div class="panel">
@@ -108,6 +133,7 @@
                 <th>Time</th>
                 <th>RFID</th>
                 <th>Location</th>
+                <th>Fare</th>
                 <th>Points</th>
                 <th>Status</th>
             </tr>
@@ -122,6 +148,7 @@
                         <div class="muted">{{ $visit->rfidMember?->member_code ?? '' }}</div>
                     </td>
                     <td>{{ $visit->location?->name ?? '—' }}</td>
+                    <td>{{ number_format((float) $visit->amount_charged, 0, ',', '.') }}</td>
                     <td>
                         @if((int) $visit->points_awarded > 0)
                             <span class="badge ok">+{{ (int) $visit->points_awarded }}</span>
@@ -132,7 +159,7 @@
                     <td><span class="badge {{ $visit->status === 'success' ? 'ok' : 'warn' }}">{{ $visit->status }}</span></td>
                 </tr>
             @empty
-                <tr><td colspan="6">Belum ada riwayat kunjungan.</td></tr>
+                <tr><td colspan="7">Belum ada riwayat kunjungan.</td></tr>
             @endforelse
             </tbody>
         </table>

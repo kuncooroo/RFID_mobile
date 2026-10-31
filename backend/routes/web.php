@@ -37,6 +37,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/visitors/{visitor}/edit', [VisitorController::class, 'edit'])->name('visitors.edit');
         Route::get('/visitors/{visitor}/faces/{pose}', [VisitorController::class, 'faceImage'])->name('visitors.face');
         Route::put('/visitors/{visitor}', [VisitorController::class, 'update'])->name('visitors.update');
+        Route::post('/visitors/{visitor}/topup', [VisitorController::class, 'topUp'])->name('visitors.topup');
         Route::delete('/visitors/{visitor}', [VisitorController::class, 'destroy'])->name('visitors.destroy');
 
         Route::get('/rfid/bind', [RfidBindController::class, 'create'])->name('rfid.bind');

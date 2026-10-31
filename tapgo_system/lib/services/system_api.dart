@@ -166,15 +166,28 @@ class SystemApi {
     required String rfidUid,
     String? deviceId,
     int? locationId,
+    List<int>? photo,
   }) async {
     try {
+      final Object payload = photo == null
+          ? {
+              'rfid_uid': rfidUid,
+              if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+              if (locationId != null && locationId > 0) 'location_id': locationId,
+            }
+          : FormData.fromMap({
+              'rfid_uid': rfidUid,
+              if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+              if (locationId != null && locationId > 0) 'location_id': locationId,
+              'photo': MultipartFile.fromBytes(
+                photo,
+                filename: 'visit.jpg',
+                contentType: MediaType('image', 'jpeg'),
+              ),
+            });
       final response = await _dio.post<Map<String, dynamic>>(
         SystemConfig.visitPath,
-        data: {
-          'rfid_uid': rfidUid,
-          if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
-          if (locationId != null && locationId > 0) 'location_id': locationId,
-        },
+        data: payload,
       );
       final body = response.data ?? {};
       if (body['success'] != true) {

@@ -11,6 +11,7 @@ use App\Models\RfidMember;
 use App\Models\User;
 use App\Models\UserFaceEnrollment;
 use App\Models\UserSetting;
+use App\Services\WalletService;
 use App\Support\AdminActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -150,6 +151,8 @@ class VisitorController extends Controller
             ->where('user_id', $visitor->id)
             ->sum('points_awarded');
 
+        $pointsRate = max(1, (int) config('kiosk.points_per_currency', 100));
+
         return view('admin.visitors.show', compact(
             'visitor',
             'faces',
@@ -158,7 +161,26 @@ class VisitorController extends Controller
             'pointsEarned',
             'dateFrom',
             'dateTo',
+            'pointsRate',
         ));
+    }
+
+    public function topUp(Request $request, User $visitor, WalletService $wallet): RedirectResponse
+    {
+        abort_unless($visitor->role === UserRole::Visitor, 404);
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:100000000'],
+        ]);
+
+        $member = $wallet->topUp($visitor, (float) $data['amount']);
+        AdminActivityLogger::log(
+            'visitor.topup',
+            'Top up saldo visitor #'.$visitor->id.' by '.$data['amount'].'. Balance '.$member->balance,
+            $visitor,
+        );
+
+        return back()->with('success', 'Saldo berhasil ditambah.');
     }
 
     public function edit(User $visitor): View

@@ -48,6 +48,10 @@ class CheckInRecord {
     this.checkedInAt,
     this.memberName,
     this.memberCode,
+    this.granted = false,
+    this.amountCharged = 0,
+    this.walletBalance = 0,
+    this.resultCode,
   });
 
   final int id;
@@ -63,8 +67,15 @@ class CheckInRecord {
   final String? checkedInAt;
   final String? memberName;
   final String? memberCode;
+  final bool granted;
+  final double amountCharged;
+  final double walletBalance;
+  final String? resultCode;
 
-  bool get succeeded => status.toUpperCase() == 'SUCCESS';
+  bool get succeeded => granted || status.toUpperCase() == 'SUCCESS';
+
+  bool get denied =>
+      resultCode == 'INSUFFICIENT_BALANCE' || status.toUpperCase() == 'DENIED';
 
   factory CheckInRecord.fromJson(Map<String, dynamic> json) {
     final points = json['points'];
@@ -78,6 +89,13 @@ class CheckInRecord {
     final resultCode = json['result_code']?.toString().toUpperCase() ?? '';
     final duplicate =
         json['duplicate'] == true || resultCode == 'ALREADY_CHECKED_IN';
+    final wallet = json['wallet'];
+    final charged = (json['amount_charged'] as num?)?.toDouble() ??
+        (wallet is Map ? (wallet['charged'] as num?)?.toDouble() : null) ??
+        0;
+    final walletBalance = (json['wallet_balance'] as num?)?.toDouble() ??
+        (wallet is Map ? (wallet['balance'] as num?)?.toDouble() : null) ??
+        0;
 
     return CheckInRecord(
       id: (json['id'] as num).toInt(),
@@ -96,6 +114,11 @@ class CheckInRecord {
           json['member_name']?.toString() ??
           (json['user'] is Map ? json['user']['name']?.toString() : null),
       memberCode: json['member_code']?.toString(),
+      granted: json['granted'] == true ||
+          (json['status']?.toString().toUpperCase() == 'SUCCESS'),
+      amountCharged: charged.toDouble(),
+      walletBalance: walletBalance.toDouble(),
+      resultCode: resultCode.isEmpty ? null : resultCode,
     );
   }
 }

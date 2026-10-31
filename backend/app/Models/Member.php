@@ -12,6 +12,8 @@ class Member extends Model
         'display_name',
         'membership_tier',
         'points',
+        'balance',
+        'discount_credit',
         'orders_count',
         'favorites_count',
         'followers_count',
@@ -21,6 +23,8 @@ class Member extends Model
     {
         return [
             'points' => 'integer',
+            'balance' => 'decimal:2',
+            'discount_credit' => 'decimal:2',
             'orders_count' => 'integer',
             'favorites_count' => 'integer',
             'followers_count' => 'integer',

@@ -20,6 +20,8 @@ class MockProfileRepository implements ProfileRepository {
       avatarUrl: 'https://picsum.photos/seed/tapgo-member/200/200',
       membershipTier: 'Gold',
       points: 1280,
+      balance: 100000,
+      discountCredit: 0,
       ordersCount: 12,
       favoritesCount: 4,
       followersCount: 86,

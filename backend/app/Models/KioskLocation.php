@@ -10,12 +10,14 @@ class KioskLocation extends Model
     protected $fillable = [
         'code',
         'name',
+        'fare_amount',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
+            'fare_amount' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

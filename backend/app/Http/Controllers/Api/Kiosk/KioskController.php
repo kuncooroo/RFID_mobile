@@ -136,17 +136,20 @@ class KioskController extends Controller
             'rfid_uid' => ['required', 'string', 'max:255'],
             'location_id' => ['nullable', 'integer', 'exists:kiosk_locations,id'],
             'device_id' => ['nullable', 'string', 'max:120'],
+            'photo' => ['nullable', 'file', 'image', 'max:10240'],
         ]);
 
         $result = $this->presence->recordVisit(
             $data['rfid_uid'],
             isset($data['location_id']) ? (int) $data['location_id'] : null,
             $data['device_id'] ?? null,
+            $request->file('photo'),
         );
 
         $message = match ($result['result_code'] ?? '') {
-            'ALREADY_CHECKED_IN' => 'Sudah check-in baru-baru ini.',
-            'ALREADY_CHECKED_IN_TODAY' => 'Kunjungan tercatat. Poin harian sudah diambil.',
+            'ALREADY_CHECKED_IN' => 'Sudah masuk beberapa saat yang lalu.',
+            'INSUFFICIENT_BALANCE' => 'Saldo tidak cukup untuk masuk.',
+            'GATE_GRANTED' => 'Gerbang terbuka.',
             default => 'Kunjungan tercatat.',
         };
 

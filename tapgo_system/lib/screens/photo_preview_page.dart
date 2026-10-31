@@ -52,8 +52,8 @@ class PhotoPreviewPage extends StatelessWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final photoSize =
-              (constraints.maxHeight - 120).clamp(180.0, 280.0).toDouble();
+          final frameHeight =
+              (constraints.maxHeight - 160).clamp(220.0, 640.0).toDouble();
           return SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -64,26 +64,23 @@ class PhotoPreviewPage extends StatelessWidget {
                     subtitle: strings.photoOkBody,
                   ),
                   const SizedBox(height: 28),
-                  Container(
-                    width: photoSize,
-                    height: photoSize,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFFEDEDED),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0x14000000),
-                          blurRadius: 32,
-                          offset: Offset(0, 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: frameHeight,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEDEDED),
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.all(Radius.circular(20)),
+                        child: Image.memory(
+                          photoBytes,
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity,
                         ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Image.memory(
-                      photoBytes,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
+                      ),
                     ),
                   ),
                 ],

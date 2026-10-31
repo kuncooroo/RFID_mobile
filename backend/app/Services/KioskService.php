@@ -6,6 +6,7 @@ use App\Contracts\Repositories\RfidRepositoryInterface;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\Cart;
+use App\Models\KioskLocation;
 use App\Models\Member;
 use App\Models\RfidMember;
 use App\Models\RfidVerification;
@@ -267,12 +268,16 @@ class KioskService
         };
 
         $faceEnrolled = false;
+        $userId = null;
         if (is_array($user) && isset($user['user_id'])) {
+            $userId = (int) $user['user_id'];
             $faceEnrolled = UserFaceEnrollment::query()
-                ->where('user_id', (int) $user['user_id'])
+                ->where('user_id', $userId)
                 ->whereIn('pose', UserFaceEnrollment::poses())
                 ->count() >= count(UserFaceEnrollment::poses());
         }
+
+        $gate = $this->gateContext($userId);
 
         return [
             'status' => $status,
@@ -285,6 +290,11 @@ class KioskService
             'rfid_member_id' => $rfidMemberId,
             'face_enrolled' => $faceEnrolled,
             'needs_face_enrollment' => $status === 'registered' && ! $faceEnrolled,
+            'balance' => $gate['balance'],
+            'fare_amount' => $gate['fare_amount'],
+            'location_id' => $gate['location_id'],
+            'location_name' => $gate['location_name'],
+            'can_enter' => $status === 'registered' && $gate['can_enter'],
         ];
     }
 
@@ -305,6 +315,28 @@ class KioskService
             'email' => $member->user->email,
             'phone' => $member->user->phone,
             'points' => (int) ($member->user->member?->points ?? 0),
+            'balance' => (float) ($member->user->member?->balance ?? 0),
+        ];
+    }
+
+    /**
+     * @return array{balance:float,fare_amount:float,location_id:?int,location_name:?string,can_enter:bool}
+     */
+    private function gateContext(?int $userId): array
+    {
+        $location = KioskLocation::query()->where('is_active', true)->orderBy('id')->first();
+        $fare = (float) ($location->fare_amount ?? 0);
+        $balance = 0.0;
+        if ($userId !== null) {
+            $balance = (float) (Member::query()->where('user_id', $userId)->value('balance') ?? 0);
+        }
+
+        return [
+            'balance' => $balance,
+            'fare_amount' => $fare,
+            'location_id' => $location?->id,
+            'location_name' => $location?->name,
+            'can_enter' => $userId !== null && (int) round($balance * 100) >= (int) round($fare * 100),
         ];
     }
 

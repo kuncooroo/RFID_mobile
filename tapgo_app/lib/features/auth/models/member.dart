@@ -12,6 +12,8 @@ class Member {
     this.phone,
     this.membershipTier,
     this.points = 0,
+    this.balance = 0,
+    this.discountCredit = 0,
     this.ordersCount = 0,
     this.favoritesCount = 0,
     this.followersCount = 0,
@@ -25,6 +27,8 @@ class Member {
   final String? phone;
   final String? membershipTier;
   final int points;
+  final double balance;
+  final double discountCredit;
   final int ordersCount;
   final int favoritesCount;
   final int followersCount;
@@ -40,6 +44,8 @@ class Member {
     String? phone,
     String? membershipTier,
     int? points,
+    double? balance,
+    double? discountCredit,
     int? ordersCount,
     int? favoritesCount,
     int? followersCount,
@@ -53,6 +59,8 @@ class Member {
       phone: phone ?? this.phone,
       membershipTier: membershipTier ?? this.membershipTier,
       points: points ?? this.points,
+      balance: balance ?? this.balance,
+      discountCredit: discountCredit ?? this.discountCredit,
       ordersCount: ordersCount ?? this.ordersCount,
       favoritesCount: favoritesCount ?? this.favoritesCount,
       followersCount: followersCount ?? this.followersCount,
@@ -70,6 +78,8 @@ class Member {
       phone: json['phone'] as String?,
       membershipTier: json['membership_tier'] as String?,
       points: (json['points'] as num?)?.toInt() ?? 0,
+      balance: (json['balance'] as num?)?.toDouble() ?? 0,
+      discountCredit: (json['discount_credit'] as num?)?.toDouble() ?? 0,
       ordersCount: (json['orders_count'] as num?)?.toInt() ?? 0,
       favoritesCount: (json['favorites_count'] as num?)?.toInt() ?? 0,
       followersCount: (json['followers_count'] as num?)?.toInt() ?? 0,
@@ -86,6 +96,8 @@ class Member {
       'phone': phone,
       'membership_tier': membershipTier,
       'points': points,
+      'balance': balance,
+      'discount_credit': discountCredit,
       'orders_count': ordersCount,
       'favorites_count': favoritesCount,
       'followers_count': followersCount,

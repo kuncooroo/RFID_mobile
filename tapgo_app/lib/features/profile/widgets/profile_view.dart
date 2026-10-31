@@ -78,6 +78,11 @@ class ProfileView extends StatelessWidget {
             title: 'ACCOUNT',
             children: [
               _ProfileMenuTile(
+                title: 'Experiences',
+                icon: Icons.photo_camera_outlined,
+                onTap: () => ProfileNavigation.openExperiences(context),
+              ),
+              _ProfileMenuTile(
                 title: 'Edit Profile',
                 icon: Icons.person_outline_rounded,
                 onTap: () => ProfileNavigation.openEditProfile(context),
