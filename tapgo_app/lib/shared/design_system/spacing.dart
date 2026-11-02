@@ -1,4 +1,4 @@
-/// TapGo spacing scale (4-pt base) from the Figma layout rhythm.
+/// WanderDesa spacing scale (4-pt base) from the Figma layout rhythm.
 abstract final class AppSpacing {
   static const double xxs = 2;
   static const double xs = 4;
@@ -11,7 +11,7 @@ abstract final class AppSpacing {
   static const double huge = 40;
   static const double massive = 48;
 
-  /// Horizontal screen padding used across most TapGo screens.
+  /// Horizontal screen padding used across most WanderDesa screens.
   static const double screenHorizontal = 20;
 
   /// Vertical screen padding for content sections.

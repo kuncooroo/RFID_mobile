@@ -7,7 +7,7 @@ import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_image.dart';
 import '../models/category.dart';
 
-/// Alternating category banner from TapGo Homescreen — Category.
+/// Alternating category banner from WanderDesa Homescreen — Category.
 class CatalogCategoryBanner extends StatelessWidget {
   const CatalogCategoryBanner({
     super.key,

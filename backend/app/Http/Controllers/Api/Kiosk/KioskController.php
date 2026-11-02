@@ -87,6 +87,9 @@ class KioskController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['nullable', 'email', 'max:190', Rule::unique('users', 'email')],
             'phone' => ['nullable', 'string', 'max:40', Rule::unique('users', 'phone')],
+            'age' => ['nullable', 'integer', 'min:1', 'max:120'],
+            'origin' => ['nullable', 'string', 'max:80'],
+            'gender' => ['nullable', 'string', Rule::in(['male', 'female'])],
         ]);
 
         if (empty($data['email']) && empty($data['phone'])) {
@@ -154,6 +157,43 @@ class KioskController extends Controller
         };
 
         return ApiResponse::success($result, $message);
+    }
+
+    /**
+     * POST /api/v1/kiosk/profile
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'rfid_uid' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:120'],
+            'age' => ['required', 'integer', 'min:1', 'max:120'],
+            'origin' => ['required', 'string', 'max:80'],
+            'gender' => ['required', 'string', Rule::in(['male', 'female'])],
+        ]);
+
+        $result = $this->kiosk->updateVisitorProfile($data['rfid_uid'], $data);
+
+        return ApiResponse::success($result, 'Profil pengunjung tersimpan.');
+    }
+
+    /**
+     * POST /api/v1/kiosk/visit/{checkIn}/photo
+     */
+    public function attachVisitPhoto(Request $request, int $checkIn): JsonResponse
+    {
+        $data = $request->validate([
+            'rfid_uid' => ['required', 'string', 'max:255'],
+            'photo' => ['required', 'file', 'image', 'max:10240'],
+        ]);
+
+        $result = $this->presence->attachVisitPhoto(
+            $checkIn,
+            $data['rfid_uid'],
+            $request->file('photo'),
+        );
+
+        return ApiResponse::success($result, 'Foto kunjungan tersimpan.');
     }
 
     /**

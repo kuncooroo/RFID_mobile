@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/widgets/app_button.dart';
 
-/// Bottom CTAs matching TapGo onboarding: Create Account + sign-in link.
+/// Bottom CTAs matching WanderDesa onboarding: Create Account + sign-in link.
 class OnboardingActions extends StatelessWidget {
   const OnboardingActions({
     super.key,

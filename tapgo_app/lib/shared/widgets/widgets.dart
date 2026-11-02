@@ -1,4 +1,4 @@
-/// Shared reusable TapGo widgets.
+/// Shared reusable WanderDesa widgets.
 library;
 
 export 'app_avatar.dart';

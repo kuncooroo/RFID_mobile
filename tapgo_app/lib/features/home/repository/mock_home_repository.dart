@@ -51,7 +51,7 @@ const _seedPromotions = <Promotion>[
     id: 'promo-1',
     title: '30% Off Summer Sale',
     subtitle: 'On selected fashion items',
-    storeName: 'TapGo Store',
+    storeName: 'WanderDesa Store',
     discountPercent: 30,
     imageUrl: 'https://picsum.photos/seed/tapgo-promo1/800/400',
   ),
@@ -66,7 +66,7 @@ const _seedPromotions = <Promotion>[
     id: 'promo-3',
     title: 'Free Shipping',
     subtitle: 'Orders over \$50',
-    storeName: 'TapGo',
+    storeName: 'WanderDesa',
     imageUrl: 'https://picsum.photos/seed/tapgo-promo3/800/400',
   ),
 ];

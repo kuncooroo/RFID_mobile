@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// TapGo color tokens derived from the Figma UI kit.
+/// WanderDesa color tokens derived from the Figma UI kit.
 abstract final class AppColors {
   // Brand
   static const Color primary = Color(0xFF514EB7);

@@ -4,7 +4,7 @@ import '../../../shared/design_system/spacing.dart';
 import '../models/category.dart';
 import 'catalog_category_banner.dart';
 
-/// Vertical list of alternating TapGo category banners.
+/// Vertical list of alternating WanderDesa category banners.
 class CatalogCategoryList extends StatelessWidget {
   const CatalogCategoryList({
     super.key,

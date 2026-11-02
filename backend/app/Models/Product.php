@@ -20,6 +20,7 @@ class Product extends Model
         'brand',
         'description',
         'price',
+        'cost_amount',
         'discount_price',
         'currency',
         'stock',
@@ -32,6 +33,7 @@ class Product extends Model
     {
         return [
             'price' => 'decimal:2',
+            'cost_amount' => 'decimal:2',
             'discount_price' => 'decimal:2',
             'stock' => 'integer',
             'rating_avg' => 'float',

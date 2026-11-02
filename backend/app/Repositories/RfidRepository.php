@@ -19,7 +19,8 @@ class RfidRepository extends BaseRepository implements RfidRepositoryInterface
             ->where('is_active', true)
             ->where(function ($q) use ($memberId) {
                 $q->where('member_code', $memberId)
-                    ->orWhere('rfid_uid', $memberId);
+                    ->orWhere('rfid_uid', $memberId)
+                    ->orWhere('card_number', $memberId);
             })
             ->first();
     }
@@ -29,7 +30,8 @@ class RfidRepository extends BaseRepository implements RfidRepositoryInterface
         return $this->query()
             ->where(function ($q) use ($memberId) {
                 $q->where('member_code', $memberId)
-                    ->orWhere('rfid_uid', $memberId);
+                    ->orWhere('rfid_uid', $memberId)
+                    ->orWhere('card_number', $memberId);
             })
             ->first();
     }

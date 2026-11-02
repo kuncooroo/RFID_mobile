@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/app_assets.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_state.dart';
@@ -37,8 +38,8 @@ class OrderHistoryView extends StatelessWidget {
 
     if (state.items.isEmpty) {
       return AppEmptyState(
-        title: 'No order history',
-        message: 'Your past orders will show up here.',
+        title: AppText.of(context).emptyHistoryTitle,
+        message: AppText.of(context).emptyHistoryBody,
         illustrationAsset: AppAssets.emptyOrders,
         icon: Icons.receipt_long_outlined,
         actionLabel: 'Back to Orders',

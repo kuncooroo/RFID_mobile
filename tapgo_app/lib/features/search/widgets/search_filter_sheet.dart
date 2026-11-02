@@ -10,7 +10,7 @@ import '../../../shared/widgets/app_color_swatch.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../models/search_filter.dart';
 
-/// TapGo Filter By bottom sheet (price, color, location).
+/// WanderDesa Filter By bottom sheet (price, color, location).
 class SearchFilterSheet extends StatefulWidget {
   const SearchFilterSheet({
     super.key,

@@ -10,7 +10,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_image.dart';
 import '../models/store.dart';
 
-/// TapGo Store Detail profile header (banner, avatar, stats, follow).
+/// WanderDesa Store Detail profile header (banner, avatar, stats, follow).
 class StoreHeader extends StatelessWidget {
   const StoreHeader({
     super.key,

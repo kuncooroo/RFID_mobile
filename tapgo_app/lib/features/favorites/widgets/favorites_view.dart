@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/app_assets.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -78,12 +79,11 @@ class FavoritesView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
               child: AppEmptyState(
-                title: 'No favorites yet',
-                message:
-                    'Tap the heart on a product to save it here for later.',
+                title: AppText.of(context).emptyFavoritesTitle,
+                message: AppText.of(context).emptyFavoritesBody,
                 illustrationAsset: AppAssets.emptyFavorites,
                 icon: Icons.favorite_border_rounded,
-                actionLabel: 'Browse Home',
+                actionLabel: AppText.of(context).browseHome,
                 onAction: () => FavoritesNavigation.openHome(context),
               ),
             )

@@ -13,7 +13,7 @@ class RegisterSuccessPage extends StatelessWidget {
         child: AuthSuccessView(
           title: 'Account Created!',
           message:
-              'Your TapGo account is ready. Start exploring products now.',
+              'Your WanderDesa account is ready. Start exploring products now.',
           actionLabel: 'Continue Shopping',
           onAction: () => AuthNavigation.goToDashboard(context),
         ),

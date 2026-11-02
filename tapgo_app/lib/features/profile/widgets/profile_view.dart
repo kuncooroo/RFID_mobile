@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/colors.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/sizes.dart';
 import '../../../shared/design_system/spacing.dart';
@@ -53,6 +54,7 @@ class ProfileView extends StatelessWidget {
     }
 
     final member = snapshot.member;
+    final copy = AppText.of(context);
     final languageLabel = snapshot.settings.languageLabel;
 
     return RefreshIndicator(
@@ -75,30 +77,35 @@ class ProfileView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxl),
           _ProfileSection(
-            title: 'ACCOUNT',
+            title: copy.account,
             children: [
               _ProfileMenuTile(
-                title: 'Experiences',
+                title: copy.experiences,
                 icon: Icons.photo_camera_outlined,
                 onTap: () => ProfileNavigation.openExperiences(context),
               ),
               _ProfileMenuTile(
-                title: 'Edit Profile',
+                title: copy.linkCard,
+                icon: Icons.nfc_rounded,
+                onTap: () => ProfileNavigation.openLinkCard(context),
+              ),
+              _ProfileMenuTile(
+                title: copy.editProfile,
                 icon: Icons.person_outline_rounded,
                 onTap: () => ProfileNavigation.openEditProfile(context),
               ),
               _ProfileMenuTile(
-                title: 'Change Password',
+                title: copy.changePassword,
                 icon: Icons.lock_outline_rounded,
                 onTap: () => ProfileNavigation.openChangePassword(context),
               ),
               _ProfileMenuTile(
-                title: 'Notifications',
+                title: copy.notifications,
                 icon: Icons.notifications_none_rounded,
                 onTap: () => ProfileNavigation.openNotifications(context),
               ),
               _ProfileMenuTile(
-                title: 'Messages',
+                title: copy.messages,
                 icon: Icons.chat_bubble_outline_rounded,
                 onTap: () => ProfileNavigation.openMessages(context),
                 showDivider: false,
@@ -107,16 +114,16 @@ class ProfileView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           _ProfileSection(
-            title: 'PREFERENCES',
+            title: copy.preferences,
             children: [
               _ProfileMenuTile(
-                title: 'Language',
+                title: copy.language,
                 icon: Icons.language_rounded,
                 trailingText: languageLabel,
                 onTap: () => ProfileNavigation.openLanguage(context),
               ),
               _ProfileMenuTile(
-                title: 'Security',
+                title: copy.security,
                 icon: Icons.shield_outlined,
                 onTap: () => ProfileNavigation.openSecurity(context),
                 showDivider: false,
@@ -125,10 +132,10 @@ class ProfileView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           _ProfileSection(
-            title: 'SUPPORT',
+            title: copy.support,
             children: [
               _ProfileMenuTile(
-                title: 'Help & Support',
+                title: copy.helpSupport,
                 icon: Icons.help_outline_rounded,
                 onTap: () => ProfileNavigation.openHelpSupport(context),
               ),

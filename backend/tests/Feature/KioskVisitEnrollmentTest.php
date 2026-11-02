@@ -122,6 +122,42 @@ class KioskVisitEnrollmentTest extends TestCase
         $this->assertSame('40000.00', Member::query()->where('user_id', $user->id)->value('balance'));
     }
 
+    public function test_issued_card_without_identity_passes_and_skips_points(): void
+    {
+        $rfid = RfidMember::query()->create([
+            'user_id' => null,
+            'member_code' => 'CARD-READY',
+            'rfid_uid' => 'CARD-READY-01',
+            'is_active' => true,
+            'balance' => 50000,
+        ]);
+
+        $response = $this->postJson('/api/v1/kiosk/visit', [
+            'rfid_uid' => $rfid->rfid_uid,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.granted', true)
+            ->assertJsonPath('data.points.earned', 0)
+            ->assertJsonPath('data.wallet.balance', 40000);
+
+        $this->assertSame('40000.00', RfidMember::query()->find($rfid->id)?->balance);
+        $this->assertSame(0, KioskPointLedger::query()->count());
+        $this->assertSame(1, WalletLedger::query()->where('rfid_member_id', $rfid->id)->count());
+    }
+
+    public function test_unknown_uid_cannot_be_registered_into_a_new_card(): void
+    {
+        $response = $this->postJson('/api/v1/kiosk/register', [
+            'rfid_uid' => 'BRAND-NEW-UID',
+            'name' => 'Sari',
+            'phone' => '08123456789',
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertSame(0, RfidMember::query()->where('rfid_uid', 'BRAND-NEW-UID')->count());
+    }
+
     public function test_invalid_rfid_visit_fails(): void
     {
         $response = $this->postJson('/api/v1/kiosk/visit', [
@@ -157,6 +193,7 @@ class KioskVisitEnrollmentTest extends TestCase
             'member_code' => 'KUTUKU-001',
             'rfid_uid' => '0182120545',
             'is_active' => true,
+            'balance' => $balance,
         ]);
 
         return [$user, $rfid];

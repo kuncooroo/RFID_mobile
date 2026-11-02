@@ -1,4 +1,4 @@
-/// TapGo sizing tokens for controls, icons, and layout chrome.
+/// WanderDesa sizing tokens for controls, icons, and layout chrome.
 abstract final class AppSizes {
   // Icons
   static const double iconXs = 16;

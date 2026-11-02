@@ -15,7 +15,7 @@ class MockProfileRepository implements ProfileRepository {
       id: 'mem-1',
       userId: 'local',
       displayName: 'Alex Morgan',
-      email: 'alex@tapgo.app',
+      email: 'alex@wanderdesa.app',
       phone: '+1 202 555 0147',
       avatarUrl: 'https://picsum.photos/seed/tapgo-member/200/200',
       membershipTier: 'Gold',

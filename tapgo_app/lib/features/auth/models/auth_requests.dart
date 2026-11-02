@@ -66,5 +66,5 @@ class ResetPasswordRequest {
   };
 }
 
-/// Supported social providers from the TapGo kit.
+/// Supported social providers from the WanderDesa kit.
 enum AuthSocialProvider { google, facebook }

@@ -35,7 +35,7 @@ class MockAuthRepository implements AuthRepository {
     return _persist(
       User(
         id: 'mock-user',
-        name: 'TapGo Member',
+        name: 'WanderDesa Member',
         email: request.identifier.trim(),
       ),
     );
@@ -67,7 +67,7 @@ class MockAuthRepository implements AuthRepository {
       User(
         id: 'mock-${provider.name}',
         name: '$label User',
-        email: '${provider.name}@tapgo.app',
+        email: '${provider.name}@wanderdesa.app',
       ),
     );
   }

@@ -6,7 +6,7 @@ import '../../../shared/design_system/spacing.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../models/auth_requests.dart';
 
-/// Google / Facebook social sign-in buttons from the TapGo kit.
+/// Google / Facebook social sign-in buttons from the WanderDesa kit.
 class AuthSocialButtons extends StatelessWidget {
   const AuthSocialButtons({
     super.key,

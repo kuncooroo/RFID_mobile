@@ -1,12 +1,12 @@
-# RFID — TapGo Mobile + Laravel API
+# RFID — WanderDesa Mobile + Laravel API
 
 Aplikasi e-commerce RFID berbasis **Flutter** (mobile) dan **Laravel 12** (REST API + Sanctum).
 
 | Bagian | Path | Nama | Stack |
 |--------|------|------|--------|
-| Mobile app (user) | `tapgo_app/` | **TapGo** / **TapGo App** | Flutter · Riverpod · GoRouter · Dio |
-| Kiosk (system) | `tapgo_system/` | **TapGo System** | Flutter · Camera · Scanner |
-| Backend / Admin | `backend/` | **TapGo Admin** | Laravel 12 · MySQL · Sanctum |
+| Mobile app (user) | `tapgo_app/` | **WanderDesa** / **WanderDesa App** | Flutter · Riverpod · GoRouter · Dio |
+| Kiosk (system) | `wanderdesa_system/` | **WanderDesa System** | Flutter · Camera · Scanner |
+| Backend / Admin | `backend/` | **WanderDesa Admin** | Laravel 12 · MySQL · Sanctum |
 
 Dokumentasi terkait:
 
@@ -138,7 +138,7 @@ php artisan storage:link
 
 > Seeder hanya berjalan di environment `local` / `testing`.
 >
-> Demo seed sekarang mencakup **alamat + metode pembayaran** untuk `demo@tapgo.test`, selain katalog produk.
+> Demo seed sekarang mencakup **alamat + metode pembayaran** untuk `demo@wanderdesa.test`, selain katalog produk.
 
 ### 3.5 Jalankan API
 
@@ -242,7 +242,7 @@ Setelah `php artisan migrate --seed`:
 
 | Field | Value |
 |-------|--------|
-| Email | `demo@tapgo.test` |
+| Email | `demo@wanderdesa.test` |
 | Password | `password` |
 | RFID member | `MEM-1001` / `RFID-DEMO-001` |
 
@@ -252,7 +252,7 @@ Login API:
 curl -X POST http://127.0.0.1:8000/api/v1/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d "{\"identifier\":\"demo@tapgo.test\",\"password\":\"password\"}"
+  -d "{\"identifier\":\"demo@wanderdesa.test\",\"password\":\"password\"}"
 ```
 
 ---

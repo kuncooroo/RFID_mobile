@@ -31,13 +31,13 @@ class DatabaseSeeder extends Seeder
 
         $this->call(AdminSeeder::class);
 
-        if (User::query()->where('email', 'demo@tapgo.test')->exists()) {
+        if (User::query()->where('email', 'demo@wanderdesa.test')->exists()) {
             return;
         }
 
         $user = User::query()->create([
             'name' => 'Demo User',
-            'email' => 'demo@tapgo.test',
+            'email' => 'demo@wanderdesa.test',
             'phone' => '+10000000001',
             'password' => Hash::make('password'),
             'role' => 'visitor',
@@ -102,12 +102,13 @@ class DatabaseSeeder extends Seeder
             'member_code' => 'MEM-1001',
             'rfid_uid' => 'RFID-DEMO-001',
             'is_active' => true,
+            'balance' => 100000,
         ]);
 
         $store = Store::query()->create([
-            'name' => 'TapGo Official',
-            'slug' => 'tapgo-official',
-            'description' => 'Official TapGo store',
+            'name' => 'WanderDesa Official',
+            'slug' => 'wanderdesa-official',
+            'description' => 'Official WanderDesa store',
             'is_verified' => true,
             'rating_avg' => 4.8,
             'location' => 'Jakarta',
@@ -141,7 +142,7 @@ class DatabaseSeeder extends Seeder
                 'category_id' => $categories[$i % $categories->count()]->id,
                 'name' => "Demo Product {$i}",
                 'slug' => 'demo-product-'.$i.'-'.Str::random(4),
-                'brand' => 'TapGo',
+                'brand' => 'WanderDesa',
                 'description' => 'Sample product seeded for API development.',
                 'price' => 49.99 + $i,
                 'discount_price' => $i % 2 === 0 ? 39.99 + $i : null,

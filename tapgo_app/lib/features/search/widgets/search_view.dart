@@ -52,7 +52,7 @@ class SearchView extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
         child: AppEmptyState(
           title: 'Start searching',
-          message: 'Find clothes, shoes, bags, and more across TapGo.',
+          message: 'Find clothes, shoes, bags, and more across WanderDesa.',
           icon: Icons.search_rounded,
         ),
       );

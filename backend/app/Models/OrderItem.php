@@ -12,6 +12,7 @@ class OrderItem extends Model
         'product_id',
         'name',
         'unit_price',
+        'cost_amount',
         'quantity',
         'image_path',
         'variant_label',
@@ -21,6 +22,7 @@ class OrderItem extends Model
     {
         return [
             'unit_price' => 'decimal:2',
+            'cost_amount' => 'decimal:2',
             'quantity' => 'integer',
         ];
     }

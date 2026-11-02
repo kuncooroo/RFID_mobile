@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/app_assets.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_state.dart';
@@ -47,9 +48,8 @@ class MessagesView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 48),
               child: AppEmptyState(
-                title: 'No messages yet',
-                message:
-                    'Start a conversation with a store to ask about products or orders.',
+                title: AppText.of(context).emptyMessagesTitle,
+                message: AppText.of(context).emptyMessagesBody,
                 illustrationAsset: AppAssets.emptyMessages,
                 icon: Icons.chat_bubble_outline_rounded,
                 actionLabel: 'Browse Home',

@@ -20,7 +20,7 @@ class LegalPoliciesView extends StatelessWidget {
     (
       title: 'Terms of Service',
       body:
-          'By using TapGo you agree to our marketplace rules, acceptable use policy, and seller/buyer obligations. Accounts may be suspended for fraud, abuse, or repeated policy violations. TapGo may update these terms; continued use means you accept the latest version.',
+          'By using WanderDesa you agree to our marketplace rules, acceptable use policy, and seller/buyer obligations. Accounts may be suspended for fraud, abuse, or repeated policy violations. WanderDesa may update these terms; continued use means you accept the latest version.',
       icon: Icons.gavel_outlined,
     ),
     (
@@ -38,7 +38,7 @@ class LegalPoliciesView extends StatelessWidget {
     (
       title: 'Shipping Policy',
       body:
-          'Delivery times depend on the seller and destination. Tracking updates appear in Order Track once a carrier label is created. TapGo is not responsible for delays caused by customs, weather, or incorrect addresses provided at checkout.',
+          'Delivery times depend on the seller and destination. Tracking updates appear in Order Track once a carrier label is created. WanderDesa is not responsible for delays caused by customs, weather, or incorrect addresses provided at checkout.',
       icon: Icons.local_shipping_outlined,
     ),
     (
@@ -60,7 +60,7 @@ class LegalPoliciesView extends StatelessWidget {
       ),
       children: [
         Text(
-          'Review how TapGo handles your account, data, orders, and community standards.',
+          'Review how WanderDesa handles your account, data, orders, and community standards.',
           style: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),

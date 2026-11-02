@@ -146,6 +146,7 @@ class ProductController extends Controller
             'store_id' => ['required', 'integer', 'exists:stores,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'price' => ['required', 'numeric', 'min:0'],
+            'cost_amount' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
             'discount_price' => ['nullable', 'numeric', 'min:0'],
             'currency' => ['required', 'string', 'size:3'],
             'stock' => ['required', 'integer', 'min:0'],
@@ -175,6 +176,7 @@ class ProductController extends Controller
         }
 
         $data['slug'] = $slug;
+        $data['cost_amount'] = $data['cost_amount'] ?? 0;
         $data['currency'] = strtoupper($data['currency']);
         $data['is_active'] = $request->boolean('is_active', true);
 

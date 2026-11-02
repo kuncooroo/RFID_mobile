@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/colors.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
@@ -15,6 +16,19 @@ class OnboardingSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = AppText.of(context);
+    final title = switch (data.id) {
+      'collections' => copy.onboarding1Title,
+      'favorites' => copy.onboarding2Title,
+      'choice' => copy.onboarding3Title,
+      _ => data.title,
+    };
+    final description = switch (data.id) {
+      'collections' => copy.onboarding1Body,
+      'favorites' => copy.onboarding2Body,
+      'choice' => copy.onboarding3Body,
+      _ => data.description,
+    };
     final size = MediaQuery.sizeOf(context);
     final imageSize = (size.width - (AppSpacing.screenHorizontal * 2)).clamp(
       240.0,
@@ -35,20 +49,20 @@ class OnboardingSlide extends StatelessWidget {
               assetPath: data.illustrationAsset,
               width: imageSize,
               height: imageSize,
-              fit: BoxFit.cover,
-              borderRadius: AppRadius.xxxlAll,
+              fit: BoxFit.contain,
+              borderRadius: AppRadius.xlAll,
               errorWidget: _IllustrationFallback(size: imageSize),
             ),
           ),
           const SizedBox(height: AppSpacing.xxxl),
           Text(
-            data.title,
+            title,
             style: AppTextStyles.headlineLarge.copyWith(height: 1.25),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            data.description,
+            description,
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.textSecondary,
               height: 1.5,

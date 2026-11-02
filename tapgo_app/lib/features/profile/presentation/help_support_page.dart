@@ -12,10 +12,10 @@ class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
 
   static const _supportThreadId = 'thread-5';
-  static const _websiteUrl = 'https://tapgo.app';
+  static const _websiteUrl = 'https://wanderdesa.app';
   static const _whatsappNumber = '+62 851-0000-0000';
-  static const _facebookHandle = '@tapgo.app';
-  static const _twitterHandle = '@tapgo';
+  static const _facebookHandle = '@wanderdesa.app';
+  static const _twitterHandle = '@wanderdesa';
 
   @override
   Widget build(BuildContext context) {

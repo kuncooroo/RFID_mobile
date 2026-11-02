@@ -11,7 +11,7 @@ enum AppButtonVariant { primary, secondary, outline, text, social, destructive }
 
 enum AppButtonSize { medium, small }
 
-/// Primary CTA and secondary action button used across TapGo screens.
+/// Primary CTA and secondary action button used across WanderDesa screens.
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,

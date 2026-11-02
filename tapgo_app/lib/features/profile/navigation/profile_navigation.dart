@@ -53,6 +53,10 @@ abstract final class ProfileNavigation {
     context.push(AppRoutes.experiences);
   }
 
+  static void openLinkCard(BuildContext context) {
+    context.push(AppRoutes.linkCard);
+  }
+
   static void openNotifications(BuildContext context) {
     context.push(AppRoutes.notifications);
   }

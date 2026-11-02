@@ -2,7 +2,7 @@
 
 @section('title', 'Products')
 @section('heading', 'Products')
-@section('subheading', 'Store catalog shown in the TapGo mobile app.')
+@section('subheading', 'Store catalog shown in the WanderDesa mobile app.')
 
 @section('content')
 <div class="toolbar">
@@ -27,6 +27,7 @@
                 <th>Category</th>
                 <th>Store</th>
                 <th>Price</th>
+                <th>HPP</th>
                 <th>Stock</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -46,6 +47,7 @@
                         {{ strtoupper($product->currency ?? 'USD') }}
                         {{ number_format((float) $product->price, 2) }}
                     </td>
+                    <td>{{ number_format((float) $product->cost_amount, 0, ',', '.') }}</td>
                     <td>{{ $product->stock }}</td>
                     <td>
                         @if($product->is_active)
@@ -64,7 +66,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8">No products found.</td></tr>
+                <tr><td colspan="9">No products found.</td></tr>
             @endforelse
             </tbody>
         </table>

@@ -1,4 +1,4 @@
-/// SVG icon asset paths for the TapGo icon set.
+/// SVG icon asset paths for the WanderDesa icon set.
 ///
 /// Place matching SVG files under `assets/icons/`.
 /// Consume with `flutter_svg` (e.g. `SvgPicture.asset(AppIcons.home)`).

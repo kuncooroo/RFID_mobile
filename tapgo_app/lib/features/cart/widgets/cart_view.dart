@@ -54,6 +54,7 @@ class CartView extends StatelessWidget {
 
     if (state.isEmpty) {
       return AppEmptyStates.cart(
+        context,
         onAction: () => CartNavigation.openHome(context),
       );
     }

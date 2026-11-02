@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\UserRole;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\KioskCheckIn;
 use App\Models\Member;
 use App\Models\RfidMember;
+use App\Models\CashierShift;
 use App\Models\User;
 use App\Models\UserFaceEnrollment;
 use App\Models\UserSetting;
@@ -173,7 +175,23 @@ class VisitorController extends Controller
             'amount' => ['required', 'numeric', 'min:0.01', 'max:100000000'],
         ]);
 
-        $member = $wallet->topUp($visitor, (float) $data['amount']);
+        $actor = auth('admin')->user();
+        $shift = CashierShift::query()
+            ->where('admin_id', $actor?->id)
+            ->where('status', 'open')
+            ->first();
+
+        try {
+            $member = $wallet->topUp(
+                $visitor,
+                (float) $data['amount'],
+                $shift ? 'cashier_topup' : 'admin_topup',
+                $actor?->id,
+                $shift?->id,
+            );
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
         AdminActivityLogger::log(
             'visitor.topup',
             'Top up saldo visitor #'.$visitor->id.' by '.$data['amount'].'. Balance '.$member->balance,
@@ -270,6 +288,12 @@ class VisitorController extends Controller
         foreach ($visitor->faceEnrollments as $face) {
             if ($face->image_path) {
                 Storage::disk('local')->delete($face->image_path);
+            }
+        }
+
+        foreach ($visitor->experiences as $experience) {
+            if ($experience->image_path) {
+                Storage::disk('local')->delete($experience->image_path);
             }
         }
 
@@ -388,6 +412,7 @@ class VisitorController extends Controller
                 'member_code' => $memberCode,
                 'is_active' => $isActive,
             ]);
+            $user->member?->update(['balance' => $existingForUid->balance]);
 
             return;
         }
@@ -407,6 +432,7 @@ class VisitorController extends Controller
             'rfid_uid' => $rfidUid,
             'member_code' => $memberCode ?: 'MEM-'.Str::upper(Str::random(6)),
             'is_active' => $isActive,
+            'balance' => $user->member?->balance ?? 0,
         ]);
     }
 

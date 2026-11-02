@@ -78,7 +78,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
           children: [
             const AuthHeader(
               title: 'New Password',
-              subtitle: 'Create a new password for your TapGo account.',
+              subtitle: 'Create a new password for your WanderDesa account.',
             ),
             const SizedBox(height: AppSpacing.xxxl),
             if (state.errorMessage != null) ...[

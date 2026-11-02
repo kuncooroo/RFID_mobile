@@ -31,6 +31,7 @@ abstract final class ApiEndpoints {
   static const notificationsReadAll = '/notifications/read-all';
   static const rfidVerify = '/rfid/verify';
   static const experiences = '/experiences';
+  static const userCard = '/user/card';
   static const redeemPoints = '/points/redeem';
 
   static String category(String id) => '/categories/$id';

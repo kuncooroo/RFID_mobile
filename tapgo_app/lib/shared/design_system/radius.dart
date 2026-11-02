@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// TapGo corner radius tokens from the Figma UI kit.
+/// WanderDesa corner radius tokens from the Figma UI kit.
 abstract final class AppRadius {
   static const double none = 0;
   static const double xs = 4;

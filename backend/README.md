@@ -1,4 +1,4 @@
-# RFID / TapGo API
+# RFID / WanderDesa API
 
 Laravel 12 REST API with Sanctum, Repository + Service layers, Form Requests, API Resources, policies, and unified JSON error handling.
 
@@ -46,7 +46,7 @@ API base URL: `http://127.0.0.1:8000/api/v1`
 
 ## Demo credentials
 
-- Email: `demo@tapgo.test`
+- Email: `demo@wanderdesa.test`
 - Password: `password`
 - RFID member: `MEM-1001` / `RFID-DEMO-001`
 
@@ -56,7 +56,7 @@ API base URL: `http://127.0.0.1:8000/api/v1`
 POST /api/v1/login
 Content-Type: application/json
 
-{"identifier":"demo@tapgo.test","password":"password"}
+{"identifier":"demo@wanderdesa.test","password":"password"}
 ```
 
 Use `Authorization: Bearer {token}` on protected routes.

@@ -7,7 +7,7 @@ import 'sizes.dart';
 import 'spacing.dart';
 import 'text_styles.dart';
 
-/// Material 3 [ThemeData] built from TapGo design tokens.
+/// Material 3 [ThemeData] built from WanderDesa design tokens.
 abstract final class AppTheme {
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(

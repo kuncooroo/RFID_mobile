@@ -408,6 +408,15 @@ button, input, select, textarea { font: inherit; }
   font-size: 13px;
   font-weight: 500;
 }
+.stat-delta {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.stat-delta.up { color: var(--success); }
+.stat-delta.down { color: var(--danger); }
+.stat-delta.flat { color: var(--muted); font-weight: 500; }
 .stat-card strong {
   display: block;
   margin-top: 10px;
@@ -810,6 +819,11 @@ input:focus, select:focus, textarea:focus {
   background: #111;
 }
 .gallery-card .meta { padding: 10px 12px; font-size: 13px; }
+.permission-matrix th,
+.permission-matrix td { text-align: center; }
+.permission-matrix th:first-child,
+.permission-matrix td:first-child { text-align: left; }
+.permission-matrix input[type="checkbox"] { width: 18px; height: 18px; }
 
 .chart-bars {
   display: grid;

@@ -1,4 +1,4 @@
-/// Image and illustration asset paths for TapGo.
+/// Image and illustration asset paths for WanderDesa.
 ///
 /// Place files under the matching `assets/` folders.
 abstract final class AppAssets {
@@ -19,9 +19,9 @@ abstract final class AppAssets {
   static const String placeholderBanner = '$_images/placeholder_banner.png';
 
   // Onboarding illustrations
-  static const String onboarding1 = '$_illustrations/onboarding_1.png';
-  static const String onboarding2 = '$_illustrations/onboarding_2.png';
-  static const String onboarding3 = '$_illustrations/onboarding_3.png';
+  static const String onboarding1 = '$_illustrations/onboarding_1.jpg';
+  static const String onboarding2 = '$_illustrations/onboarding_2.jpg';
+  static const String onboarding3 = '$_illustrations/onboarding_3.jpg';
 
   // Empty / success states
   static const String emptyCart = '$_illustrations/empty_cart.png';

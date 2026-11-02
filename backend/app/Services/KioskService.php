@@ -93,18 +93,20 @@ class KioskService
                 cardStatus: 'inactive',
                 user: $this->userPayload($member),
                 rfidMemberId: (int) $member->id,
+                card: $member,
             );
         }
 
         if ($member->user_id === null) {
             return $this->lookupPayload(
-                status: 'unregistered',
+                status: 'issued',
                 rfidUid: $member->rfid_uid,
                 memberCode: $member->member_code,
                 isActive: true,
-                cardStatus: 'unbound',
+                cardStatus: 'ready',
                 user: null,
                 rfidMemberId: (int) $member->id,
+                card: $member,
             );
         }
 
@@ -118,13 +120,14 @@ class KioskService
             cardStatus: 'active',
             user: $this->userPayload($member),
             rfidMemberId: (int) $member->id,
+            card: $member,
         );
     }
 
     /**
      * Resolve an active RFID / QR code to a bound visitor.
      *
-     * @return array{user_id:int,name:string,rfid_uid:string,member_code:string,rfid_member_id:int}
+     * @return array{user_id:?int,name:string,rfid_uid:string,member_code:string,rfid_member_id:int}
      */
     public function verifyCode(string $code): array
     {
@@ -132,19 +135,18 @@ class KioskService
 
         return match ($lookup['status']) {
             'inactive' => throw new DomainException('Kartu RFID nonaktif.', 422, 'kiosk_member_inactive'),
-            'unregistered' => throw new DomainException(
-                'Kartu belum terdaftar. Silakan registrasi di kiosk.',
-                422,
-                'kiosk_member_unbound',
-            ),
-            'registered' => [
-                'user_id' => (int) $lookup['user']['user_id'],
-                'name' => (string) $lookup['user']['name'],
+            'issued', 'registered' => [
+                'user_id' => isset($lookup['user']['user_id']) ? (int) $lookup['user']['user_id'] : null,
+                'name' => (string) ($lookup['user']['name'] ?? $lookup['member_code'] ?? 'Kartu'),
                 'rfid_uid' => (string) $lookup['rfid_uid'],
                 'member_code' => (string) ($lookup['member_code'] ?? ''),
                 'rfid_member_id' => (int) ($lookup['rfid_member_id'] ?? 0),
             ],
-            default => throw new DomainException('Kartu / QR tidak dikenali.', 404, 'kiosk_member_not_found'),
+            default => throw new DomainException(
+                'Kartu ini belum diterbitkan.',
+                422,
+                'kiosk_card_not_issued',
+            ),
         };
     }
 
@@ -166,9 +168,18 @@ class KioskService
             throw new DomainException('Kartu RFID sudah terdaftar pada akun lain.', 409, 'kiosk_rfid_already_registered');
         }
 
+        if ($lookup['status'] !== 'issued' || empty($lookup['rfid_member_id'])) {
+            throw new DomainException(
+                'Kartu ini belum diterbitkan. WanderDesa memakai kartu yang sudah jadi.',
+                422,
+                'kiosk_card_not_issued',
+            );
+        }
+
         $name = trim((string) ($data['name'] ?? ''));
         $email = $this->nullableString($data['email'] ?? null);
         $phone = $this->nullableString($data['phone'] ?? null);
+        $profile = $this->profileInput($data);
 
         if ($name === '') {
             throw new DomainException('Nama wajib diisi.', 422, 'kiosk_name_required');
@@ -177,42 +188,44 @@ class KioskService
             throw new DomainException('Isi email atau nomor telepon.', 422, 'kiosk_contact_required');
         }
 
-        return DB::transaction(function () use ($lookup, $name, $email, $phone) {
+        return DB::transaction(function () use ($lookup, $name, $email, $phone, $profile) {
             $user = User::query()->create([
                 'name' => $name,
                 'email' => $email,
                 'phone' => $phone,
+                'age' => $profile['age'],
+                'origin' => $profile['origin'],
+                'gender' => $profile['gender'],
                 'password' => Str::password(16),
                 'role' => UserRole::Visitor,
                 'onboarding_completed_at' => now(),
+            ]);
+
+            $uid = (string) $lookup['rfid_uid'];
+            $card = RfidMember::query()->findOrFail($lookup['rfid_member_id']);
+            $card->update([
+                'user_id' => $user->id,
+                'is_active' => true,
             ]);
 
             Member::query()->create([
                 'user_id' => $user->id,
                 'display_name' => $user->name,
                 'membership_tier' => 'standard',
+                'balance' => $card->balance,
             ]);
 
             UserSetting::query()->create(['user_id' => $user->id]);
-            Cart::query()->create(['user_id' => $user->id, 'currency' => 'USD']);
+            Cart::query()->create(['user_id' => $user->id, 'currency' => 'IDR']);
 
-            $uid = (string) $lookup['rfid_uid'];
-            $existingId = $lookup['rfid_member_id'] ?? null;
-
-            if ($existingId) {
-                $card = RfidMember::query()->findOrFail($existingId);
-                $card->update([
-                    'user_id' => $user->id,
-                    'is_active' => true,
-                ]);
-            } else {
-                RfidMember::query()->create([
-                    'user_id' => $user->id,
-                    'member_code' => 'MEM-'.str_pad((string) $user->id, 5, '0', STR_PAD_LEFT),
-                    'rfid_uid' => $uid,
-                    'is_active' => true,
-                ]);
-            }
+            \App\Models\KioskCheckIn::query()
+                ->where('rfid_member_id', $card->id)
+                ->whereNull('user_id')
+                ->update(['user_id' => $user->id]);
+            \App\Models\KioskPresence::query()
+                ->where('rfid_member_id', $card->id)
+                ->whereNull('user_id')
+                ->update(['user_id' => $user->id]);
 
             return $this->lookupRfid($uid);
         });
@@ -258,9 +271,11 @@ class KioskService
         string $cardStatus,
         ?array $user,
         ?int $rfidMemberId = null,
+        ?RfidMember $card = null,
     ): array {
         $resultCode = match ($status) {
             'registered' => 'MEMBER_FOUND',
+            'issued' => 'CARD_READY',
             'unregistered' => 'RFID_NOT_REGISTERED',
             'inactive' => 'RFID_INACTIVE',
             'invalid' => 'RFID_INVALID',
@@ -277,7 +292,8 @@ class KioskService
                 ->count() >= count(UserFaceEnrollment::poses());
         }
 
-        $gate = $this->gateContext($userId);
+        $gate = $this->gateContext($card);
+        $usable = in_array($status, ['registered', 'issued'], true);
 
         return [
             'status' => $status,
@@ -289,12 +305,14 @@ class KioskService
             'user' => $user,
             'rfid_member_id' => $rfidMemberId,
             'face_enrolled' => $faceEnrolled,
-            'needs_face_enrollment' => $status === 'registered' && ! $faceEnrolled,
+            'needs_face_enrollment' => false,
+            'identity_linked' => $status === 'registered',
             'balance' => $gate['balance'],
+            'balance_cap' => $this->balanceCap($status === 'registered'),
             'fare_amount' => $gate['fare_amount'],
             'location_id' => $gate['location_id'],
             'location_name' => $gate['location_name'],
-            'can_enter' => $status === 'registered' && $gate['can_enter'],
+            'can_enter' => $usable && $gate['can_enter'],
         ];
     }
 
@@ -314,30 +332,99 @@ class KioskService
             'name' => $member->user->name,
             'email' => $member->user->email,
             'phone' => $member->user->phone,
+            'age' => $member->user->age,
+            'origin' => $member->user->origin,
+            'gender' => $member->user->gender,
             'points' => (int) ($member->user->member?->points ?? 0),
-            'balance' => (float) ($member->user->member?->balance ?? 0),
+            'balance' => (float) $member->balance,
+        ];
+    }
+
+    /**
+     * Fill name, age, origin, and gender for a card that is already linked.
+     *
+     * @param  array{name?:string,age?:int,origin?:string,gender?:string}  $data
+     * @return array<string, mixed>
+     */
+    public function updateVisitorProfile(string $rfidUid, array $data): array
+    {
+        $lookup = $this->lookupRfid($rfidUid);
+        if ($lookup['status'] !== 'registered' || empty($lookup['user']['user_id'])) {
+            throw new DomainException('Kartu belum terhubung ke pengunjung.', 422, 'kiosk_profile_unlinked');
+        }
+
+        $name = trim((string) ($data['name'] ?? ''));
+        if ($name === '') {
+            throw new DomainException('Nama wajib diisi.', 422, 'kiosk_name_required');
+        }
+        $profile = $this->profileInput($data, required: true);
+
+        $user = User::query()->findOrFail((int) $lookup['user']['user_id']);
+        $user->update([
+            'name' => $name,
+            'age' => $profile['age'],
+            'origin' => $profile['origin'],
+            'gender' => $profile['gender'],
+        ]);
+        $user->member?->update(['display_name' => $name]);
+
+        return $this->lookupRfid((string) $lookup['rfid_uid']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{age:?int,origin:?string,gender:?string}
+     */
+    private function profileInput(array $data, bool $required = false): array
+    {
+        $age = isset($data['age']) && $data['age'] !== '' ? (int) $data['age'] : null;
+        $origin = $this->nullableString($data['origin'] ?? null);
+        $gender = $this->nullableString($data['gender'] ?? null);
+
+        if ($required && ($age === null || $age < 1 || $age > 120)) {
+            throw new DomainException('Umur wajib diisi.', 422, 'kiosk_age_required');
+        }
+        if ($required && $origin === null) {
+            throw new DomainException('Asal wajib diisi.', 422, 'kiosk_origin_required');
+        }
+        if ($required && ! in_array($gender, ['male', 'female'], true)) {
+            throw new DomainException('Jenis kelamin wajib diisi.', 422, 'kiosk_gender_required');
+        }
+        if ($gender !== null && ! in_array($gender, ['male', 'female'], true)) {
+            throw new DomainException('Jenis kelamin tidak dikenali.', 422, 'kiosk_gender_invalid');
+        }
+
+        return [
+            'age' => $age,
+            'origin' => $origin,
+            'gender' => $gender,
         ];
     }
 
     /**
      * @return array{balance:float,fare_amount:float,location_id:?int,location_name:?string,can_enter:bool}
      */
-    private function gateContext(?int $userId): array
+    private function gateContext(?RfidMember $card): array
     {
         $location = KioskLocation::query()->where('is_active', true)->orderBy('id')->first();
         $fare = (float) ($location->fare_amount ?? 0);
-        $balance = 0.0;
-        if ($userId !== null) {
-            $balance = (float) (Member::query()->where('user_id', $userId)->value('balance') ?? 0);
-        }
+        $balance = (float) ($card?->balance ?? 0);
+        $active = $card !== null && $card->is_active;
 
         return [
             'balance' => $balance,
             'fare_amount' => $fare,
             'location_id' => $location?->id,
             'location_name' => $location?->name,
-            'can_enter' => $userId !== null && (int) round($balance * 100) >= (int) round($fare * 100),
+            'can_enter' => $active && (int) round($balance * 100) >= (int) round($fare * 100),
         ];
+    }
+
+    private function balanceCap(bool $identityLinked): float
+    {
+        $key = $identityLinked ? 'kiosk.registered_balance_cap' : 'kiosk.anonymous_balance_cap';
+
+        return (float) config($key, $identityLinked ? 10000000 : 1000000);
     }
 
     private function nullableString(mixed $value): ?string
@@ -373,7 +460,7 @@ class KioskService
             throw new DomainException('Kode kosong.', 422, 'kiosk_empty_code');
         }
 
-        // Support QR payloads like {"type":"tapgo_member","uid":"0182120545"}
+        // Support QR payloads like {"type":"wanderdesa_member","uid":"0182120545"}
         // (also accepts legacy type "kutuku_member")
         if (str_starts_with($raw, '{')) {
             $json = json_decode($raw, true);
@@ -382,7 +469,7 @@ class KioskService
             }
         }
 
-        // Support deep-link style: tapgo://member/0182120545
+        // Support deep-link style: wanderdesa://member/0182120545
         // (also accepts legacy kutuku://member/...)
         if (str_contains($raw, '/')) {
             $parts = preg_split('#[/?&=]#', $raw) ?: [];

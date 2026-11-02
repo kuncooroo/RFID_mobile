@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/app_assets.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/app_image.dart';
 import '../models/splash_statistic.dart';
 
 /// Statistics marketing intro (Figma `1:18`).
@@ -87,7 +87,7 @@ class _StatisticsIntroViewState extends State<StatisticsIntroView>
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'TapGo',
+                        'WanderDesa',
                         style: AppTextStyles.headlineLarge.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700,
@@ -98,7 +98,7 @@ class _StatisticsIntroViewState extends State<StatisticsIntroView>
                     const _HeroVisual(),
                     const SizedBox(height: AppSpacing.xxxl),
                     Text(
-                      'Shop smarter.\nLive better.',
+                      AppText.of(context).shopSmarter,
                       style: AppTextStyles.displayMedium.copyWith(
                         height: 1.15,
                         letterSpacing: -0.6,
@@ -107,7 +107,7 @@ class _StatisticsIntroViewState extends State<StatisticsIntroView>
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Discover curated fashion, trusted stores, and seamless checkout in one place.',
+                      AppText.of(context).shopSmarterBody,
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.textSecondary,
                         height: 1.5,
@@ -118,7 +118,7 @@ class _StatisticsIntroViewState extends State<StatisticsIntroView>
                     _StatisticsRow(statistics: stats),
                     const Spacer(flex: 2),
                     AppButton(
-                      label: 'Get Started',
+                      label: AppText.of(context).getStarted,
                       onPressed: widget.onGetStarted,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
@@ -139,46 +139,20 @@ class _HeroVisual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 220,
+      height: 280,
       width: double.infinity,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 220,
-            height: 220,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primarySoft.withValues(alpha: 0.65),
-            ),
+      child: Image.asset(
+        AppAssets.onboarding1,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Image.asset(
+          AppAssets.onboarding2,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Icon(
+            Icons.shopping_bag_rounded,
+            size: 96,
+            color: AppColors.primary,
           ),
-          Container(
-            width: 176,
-            height: 176,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.surface,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: AppImage(
-              assetPath: AppAssets.statisticsHero,
-              width: 176,
-              height: 176,
-              fit: BoxFit.cover,
-              errorWidget: AppImage(
-                assetPath: AppAssets.splash,
-                width: 176,
-                height: 176,
-                fit: BoxFit.cover,
-                errorWidget: const Icon(
-                  Icons.shopping_bag_rounded,
-                  size: 64,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

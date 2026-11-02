@@ -31,6 +31,7 @@ import '../../features/profile/presentation/edit_profile_page.dart';
 import '../../features/profile/presentation/help_support_page.dart';
 import '../../features/profile/presentation/language_page.dart';
 import '../../features/profile/presentation/legal_policies_page.dart';
+import '../../features/profile/presentation/link_card_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../../features/profile/presentation/security_page.dart';
 import '../../features/profile/presentation/settings_detail_pages.dart';
@@ -297,6 +298,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     name: 'experiences',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const ExperiencesPage(),
+                  ),
+                  GoRoute(
+                    path: 'link-card',
+                    name: 'linkCard',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const LinkCardPage(),
                   ),
                   GoRoute(
                     path: 'settings',

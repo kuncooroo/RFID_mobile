@@ -1,0 +1,426 @@
+import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
+
+import '../config/system_config.dart';
+import '../models/system_member.dart';
+import '../models/presence.dart';
+
+class SystemApiException implements Exception {
+  SystemApiException(this.message, {this.statusCode, this.code});
+
+  final String message;
+  final int? statusCode;
+  final String? code;
+
+  @override
+  String toString() => message;
+}
+
+class SystemApi {
+  SystemApi({Dio? dio})
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: SystemConfig.apiBaseUrl,
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 30),
+              headers: {
+                'Accept': 'application/json',
+                if (SystemConfig.apiKey.isNotEmpty)
+                  'X-Kiosk-Key': SystemConfig.apiKey,
+              },
+            ),
+          );
+
+  final Dio _dio;
+
+  Future<void> health() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        SystemConfig.healthPath,
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Backend tidak siap',
+          statusCode: response.statusCode,
+        );
+      }
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<RfidLookup> lookupRfid(String uid) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.rfidVerifyPath,
+        data: {'rfid_uid': uid},
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Verifikasi kartu gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+      final data = Map<String, dynamic>.from(body['data'] as Map);
+      return RfidLookup.fromJson(data, message: body['message']?.toString());
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<RfidLookup> registerVisitor({
+    required String rfidUid,
+    required String name,
+    String? email,
+    String? phone,
+    int? age,
+    String? origin,
+    String? gender,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.registerPath,
+        data: {
+          'rfid_uid': rfidUid,
+          'name': name,
+          if (email != null && email.isNotEmpty) 'email': email,
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
+          'age': ?age,
+          if (origin != null && origin.isNotEmpty) 'origin': origin,
+          if (gender != null && gender.isNotEmpty) 'gender': gender,
+        },
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Registrasi gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+      final data = Map<String, dynamic>.from(body['data'] as Map);
+      return RfidLookup.fromJson(data, message: body['message']?.toString());
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<RfidLookup> updateProfile({
+    required String rfidUid,
+    required String name,
+    required int age,
+    required String origin,
+    required String gender,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.profilePath,
+        data: {
+          'rfid_uid': rfidUid,
+          'name': name,
+          'age': age,
+          'origin': origin,
+          'gender': gender,
+        },
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Profil gagal disimpan',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+      return RfidLookup.fromJson(
+        Map<String, dynamic>.from(body['data'] as Map),
+        message: body['message']?.toString(),
+      );
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<void> attachVisitPhoto({
+    required int checkInId,
+    required String rfidUid,
+    required List<int> photo,
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'rfid_uid': rfidUid,
+        'photo': MultipartFile.fromBytes(
+          photo,
+          filename: 'visit.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      });
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.visitPhotoPath(checkInId),
+        data: form,
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Foto gagal disimpan',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<void> enrollFace({
+    required String rfidUid,
+    required List<int> front,
+    required List<int> right,
+    required List<int> left,
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'rfid_uid': rfidUid,
+        'front': MultipartFile.fromBytes(
+          front,
+          filename: 'front.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+        'right': MultipartFile.fromBytes(
+          right,
+          filename: 'right.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+        'left': MultipartFile.fromBytes(
+          left,
+          filename: 'left.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      });
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.faceEnrollmentPath,
+        data: form,
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Face enrollment gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<CheckInRecord> recordVisit({
+    required String rfidUid,
+    String? deviceId,
+    int? locationId,
+    List<int>? photo,
+  }) async {
+    try {
+      final Object payload = photo == null
+          ? {
+              'rfid_uid': rfidUid,
+              if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+              if (locationId != null && locationId > 0) 'location_id': locationId,
+            }
+          : FormData.fromMap({
+              'rfid_uid': rfidUid,
+              if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+              if (locationId != null && locationId > 0) 'location_id': locationId,
+              'photo': MultipartFile.fromBytes(
+                photo,
+                filename: 'visit.jpg',
+                contentType: MediaType('image', 'jpeg'),
+              ),
+            });
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.visitPath,
+        data: payload,
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Kunjungan gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+      return CheckInRecord.fromJson(
+        Map<String, dynamic>.from(body['data'] as Map),
+      );
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<void> uploadPhoto({
+    required String code,
+    required int userId,
+    required List<int> bytes,
+    String filename = 'kiosk_capture.jpg',
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'code': code,
+        'rfid_uid': code,
+        'user_id': userId,
+        'photo': MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      });
+
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.uploadPath,
+        data: form,
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Upload gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<PresenceRecord> recordPresence({
+    required String rfidUid,
+    required List<int> bytes,
+    String? deviceId,
+    int? locationId,
+    String filename = 'presence.jpg',
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'rfid_uid': rfidUid,
+        if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+        if (locationId != null && locationId > 0) 'location_id': locationId,
+        'captured_at': DateTime.now().toUtc().toIso8601String(),
+        'photo': MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      });
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.presencePath,
+        data: form,
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Presence gagal dicatat',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+      return PresenceRecord.fromJson(
+        Map<String, dynamic>.from(body['data'] as Map),
+      );
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  Future<CheckInRecord> checkIn({
+    required int presenceId,
+    required String rfidUid,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        SystemConfig.checkInPath,
+        data: {'presence_id': presenceId, 'rfid_uid': rfidUid},
+      );
+      final body = response.data ?? {};
+      if (body['success'] != true) {
+        throw SystemApiException(
+          body['message']?.toString() ?? 'Check-in gagal',
+          statusCode: response.statusCode,
+          code: body['code']?.toString(),
+        );
+      }
+      return CheckInRecord.fromJson(
+        Map<String, dynamic>.from(body['data'] as Map),
+      );
+    } on DioException catch (e) {
+      throw SystemApiException(
+        _messageFromDio(e),
+        statusCode: e.response?.statusCode,
+        code: _codeFromDio(e),
+      );
+    }
+  }
+
+  String? _codeFromDio(DioException e) {
+    final data = e.response?.data;
+    if (data is Map && data['code'] != null) {
+      return data['code'].toString();
+    }
+    return null;
+  }
+
+  String _messageFromDio(DioException e) {
+    final data = e.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return 'Koneksi ke server habis waktu. Coba lagi.';
+    }
+    if (e.type == DioExceptionType.connectionError) {
+      return 'Tidak dapat terhubung ke server.';
+    }
+    return e.message ?? 'Koneksi ke server gagal';
+  }
+}

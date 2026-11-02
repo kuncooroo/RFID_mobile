@@ -70,7 +70,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           children: [
             const AuthHeader(
               title: 'Create Account',
-              subtitle: 'Start shopping smarter with TapGo.',
+              subtitle: 'Start shopping smarter with WanderDesa.',
             ),
             const SizedBox(height: AppSpacing.xxxl),
             if (state.errorMessage != null) ...[

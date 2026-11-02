@@ -78,6 +78,7 @@ class SearchResultsView extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
               child: AppEmptyStates.search(
+                context,
                 onAction: state.filter.hasSheetFilters ? onResetFilter : null,
               ),
             ),

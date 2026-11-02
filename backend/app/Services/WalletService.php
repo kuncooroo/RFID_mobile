@@ -5,31 +5,94 @@ namespace App\Services;
 use App\Exceptions\DomainException;
 use App\Models\KioskPointLedger;
 use App\Models\Member;
+use App\Models\RfidMember;
 use App\Models\User;
 use App\Models\WalletLedger;
 use Illuminate\Support\Facades\DB;
 
 class WalletService
 {
-    public function topUp(User $user, float $amount, string $reason = 'admin_topup'): Member
-    {
+    public function topUp(
+        User $user,
+        float $amount,
+        string $reason = 'admin_topup',
+        ?int $adminId = null,
+        ?int $shiftId = null,
+    ): Member {
+        $card = RfidMember::query()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->first();
+        if (! $card) {
+            throw new DomainException(
+                'Pengunjung ini belum punya kartu. Saldo diisi ke kartu yang sudah jadi.',
+                422,
+                'wallet_card_missing',
+            );
+        }
+
+        $member = Member::query()->where('user_id', $user->id)->first();
+        if (! $member) {
+            throw new DomainException('Profil member tidak ditemukan.', 422, 'member_missing');
+        }
+
+        $this->topUpCard($card, $amount, $reason, $adminId, $shiftId);
+
+        return $member->refresh();
+    }
+
+    public function topUpCard(
+        RfidMember $card,
+        float $amount,
+        string $reason = 'cashier_topup',
+        ?int $adminId = null,
+        ?int $shiftId = null,
+    ): RfidMember {
         if ($amount <= 0) {
             throw new DomainException('Nominal top-up harus lebih dari 0.', 422, 'wallet_amount_invalid');
         }
 
-        return DB::transaction(function () use ($user, $amount, $reason) {
-            $member = $this->lockMember($user);
-            $member->balance = $this->money((float) $member->balance + $amount);
-            $member->save();
+        return DB::transaction(function () use ($card, $amount, $reason, $adminId, $shiftId) {
+            $locked = RfidMember::query()->whereKey($card->id)->lockForUpdate()->first();
+            if (! $locked || ! $locked->is_active) {
+                throw new DomainException('Kartu tidak aktif.', 422, 'wallet_card_inactive');
+            }
+
+            $cap = $locked->user_id
+                ? (float) config('kiosk.registered_balance_cap', 10000000)
+                : (float) config('kiosk.anonymous_balance_cap', 1000000);
+            $next = (float) $locked->balance + $amount;
+            if ((int) round($next * 100) > (int) round($cap * 100)) {
+                $label = $locked->user_id ? 'terdaftar' : 'tanpa identitas';
+                throw new DomainException(
+                    'Saldo kartu '.$label.' tidak boleh melebihi '.number_format($cap, 0, ',', '.').'.',
+                    422,
+                    'wallet_balance_cap',
+                );
+            }
+
+            $locked->balance = $this->money($next);
+            $locked->save();
+
+            if ($locked->user_id) {
+                $member = Member::query()->where('user_id', $locked->user_id)->lockForUpdate()->first();
+                if ($member) {
+                    $member->balance = $locked->balance;
+                    $member->save();
+                }
+            }
 
             WalletLedger::query()->create([
-                'user_id' => $user->id,
+                'user_id' => $locked->user_id,
+                'rfid_member_id' => $locked->id,
+                'admin_id' => $adminId,
+                'shift_id' => $shiftId,
                 'delta' => $this->money($amount),
-                'balance_after' => $member->balance,
+                'balance_after' => $locked->balance,
                 'reason' => $reason,
             ]);
 
-            return $member->refresh();
+            return $locked->refresh();
         });
     }
 

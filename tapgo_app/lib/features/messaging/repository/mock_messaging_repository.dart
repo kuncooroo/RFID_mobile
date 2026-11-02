@@ -202,7 +202,7 @@ final _seedConversations = <Conversation>[
   ),
   Conversation(
     id: 'thread-5',
-    title: 'TapGo Support',
+    title: 'WanderDesa Support',
     avatarUrl: 'https://picsum.photos/seed/tapgo-support/200/200',
     lastMessage: 'How can we help you today?',
     lastMessageAt: DateTime.now().subtract(const Duration(days: 2)),

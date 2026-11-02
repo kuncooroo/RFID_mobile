@@ -6,7 +6,7 @@ import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
 import '../state/home_state.dart';
 
-/// Home / Category segment switcher from the TapGo homescreen.
+/// Home / Category segment switcher from the WanderDesa homescreen.
 class HomeSegmentTabs extends StatelessWidget {
   const HomeSegmentTabs({
     super.key,

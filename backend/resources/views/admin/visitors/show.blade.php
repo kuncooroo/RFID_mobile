@@ -8,6 +8,9 @@
 <div class="toolbar">
     <a class="btn secondary" href="{{ route('admin.visitors.index') }}">Back to list</a>
     <a class="btn" href="{{ route('admin.visitors.edit', $visitor) }}">Edit visitor</a>
+    @if(auth('admin')->user()?->allows('experiences.manage'))
+        <a class="btn secondary" href="{{ route('admin.experiences.show', $visitor) }}">Experience</a>
+    @endif
 </div>
 
 <div class="visitor-meta" style="border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 18px;">
@@ -40,6 +43,7 @@
 <div class="panel" style="margin-bottom: 18px;">
     <div class="panel-header">
         <h2>Top up saldo</h2>
+        <p class="muted">Saldo tersimpan di kartu. Top-up tunai di loket dicatat lewat menu Kasir saat shift terbuka, supaya uang yang diterima masuk rekonsiliasi.</p>
     </div>
     <form method="POST" action="{{ route('admin.visitors.topup', $visitor) }}" class="form-grid">
         @csrf
@@ -70,6 +74,10 @@
         <div>
             <div class="muted" style="font-size: 12px; font-weight: 600;">Member code</div>
             <div><code>{{ $visitor->rfidMember?->member_code ?? '—' }}</code></div>
+        </div>
+        <div>
+            <div class="muted" style="font-size: 12px; font-weight: 600;">Nomor kartu (16 digit)</div>
+            <div><code>{{ $visitor->rfidMember?->card_number ?? '—' }}</code></div>
         </div>
         <div>
             <div class="muted" style="font-size: 12px; font-weight: 600;">Registered</div>

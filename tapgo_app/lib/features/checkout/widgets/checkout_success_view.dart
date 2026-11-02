@@ -62,8 +62,8 @@ class CheckoutSuccessView extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Text(
             orderId == null
-                ? 'Your order has been placed successfully. Thank you for shopping with TapGo!'
-                : 'Your order $orderId has been placed successfully. Thank you for shopping with TapGo!',
+                ? 'Your order has been placed successfully. Thank you for shopping with WanderDesa!'
+                : 'Your order $orderId has been placed successfully. Thank you for shopping with WanderDesa!',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.textSecondary,
               height: 1.5,

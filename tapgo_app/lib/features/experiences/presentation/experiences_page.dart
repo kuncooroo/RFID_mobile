@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/design_system/colors.dart';
+import '../../../shared/l10n/app_text.dart';
+import '../../../shared/utils/money.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
@@ -122,10 +124,9 @@ class _ExperiencesPageState extends ConsumerState<ExperiencesPage> {
                   Text('VISITS', style: _sectionLabel),
                   const SizedBox(height: AppSpacing.sm),
                   if (_items.isEmpty)
-                    const AppEmptyState(
-                      title: 'No visits yet',
-                      message:
-                          'A successful gate tap with your card and balance shows up here.',
+                    AppEmptyState(
+                      title: AppText.of(context).emptyVisitsTitle,
+                      message: AppText.of(context).emptyVisitsBody,
                       icon: Icons.photo_camera_outlined,
                     )
                   else
@@ -163,10 +164,10 @@ class _WalletCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Saldo ${_money(member.balance)}', style: AppTextStyles.titleLarge),
+          Text('Saldo ${formatMoney(member.balance)}', style: AppTextStyles.titleLarge),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '${member.points} points · discount ${_money(member.discountCredit)}',
+            '${member.points} poin · diskon ${formatMoney(member.discountCredit)}',
             style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -222,7 +223,7 @@ class _ExperienceTile extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Saldo -${_money(item.amountCharged)} · +${item.pointsAwarded} points',
+                  'Saldo -${formatMoney(item.amountCharged)} · +${item.pointsAwarded} poin',
                   style: AppTextStyles.bodyMedium,
                 ),
               ],
@@ -287,16 +288,5 @@ TextStyle get _sectionLabel => AppTextStyles.labelSmall.copyWith(
   fontWeight: FontWeight.w600,
   letterSpacing: 0.6,
 );
-
-String _money(double value) {
-  final digits = value.round().abs().toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    final fromEnd = digits.length - i;
-    if (i != 0 && fromEnd % 3 == 0) buf.write('.');
-    buf.write(digits[i]);
-  }
-  return buf.toString();
-}
 
 String _two(int value) => value.toString().padLeft(2, '0');

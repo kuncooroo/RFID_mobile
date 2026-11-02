@@ -67,8 +67,8 @@ class _SplashLogoState extends State<SplashLogo>
               ),
               clipBehavior: Clip.antiAlias,
               child: Image.asset(
-                AppAssets.logo,
-                fit: BoxFit.contain,
+                AppAssets.onboarding1,
+                fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Icon(
                   Icons.shopping_bag_rounded,
                   size: widget.size * 0.5,
@@ -78,7 +78,7 @@ class _SplashLogoState extends State<SplashLogo>
             ),
             const SizedBox(height: AppSpacing.xl),
             Text(
-              'TapGo',
+              'WanderDesa',
               style: AppTextStyles.displayMedium.copyWith(
                 color: AppColors.textPrimary,
                 letterSpacing: -0.5,
@@ -105,7 +105,7 @@ class SplashWordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'TapGo',
+      'WanderDesa',
       style: AppTextStyles.headlineLarge.copyWith(color: AppColors.primary),
     );
   }

@@ -25,7 +25,7 @@ class StaffController extends Controller
                         ->orWhere('phone', 'like', "%{$q}%");
                 });
             })
-            ->orderByRaw("FIELD(role, 'superadmin', 'admin')")
+            ->orderByRaw("FIELD(role, 'superadmin', 'finance', 'staff', 'admin')")
             ->orderBy('id')
             ->paginate(20)
             ->withQueryString();
@@ -45,7 +45,7 @@ class StaffController extends Controller
             'email' => ['required', 'email', 'max:190', 'unique:admins,email'],
             'phone' => ['nullable', 'string', 'max:40', 'unique:admins,phone'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', Rule::in([UserRole::Admin->value, UserRole::Superadmin->value])],
+            'role' => ['required', Rule::in(UserRole::staffValues())],
         ]);
 
         $admin = Admin::query()->create([
@@ -73,7 +73,7 @@ class StaffController extends Controller
             'email' => ['required', 'email', 'max:190', Rule::unique('admins', 'email')->ignore($staff->id)],
             'phone' => ['nullable', 'string', 'max:40', Rule::unique('admins', 'phone')->ignore($staff->id)],
             'password' => ['nullable', 'string', 'min:8'],
-            'role' => ['required', Rule::in([UserRole::Admin->value, UserRole::Superadmin->value])],
+            'role' => ['required', Rule::in(UserRole::staffValues())],
         ]);
 
         $actor = $request->user('admin');

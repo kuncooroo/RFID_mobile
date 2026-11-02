@@ -10,7 +10,7 @@ import '../state/store_state.dart';
 import 'store_header.dart';
 import 'store_product_grid.dart';
 
-/// Scrollable Store Detail body matching TapGo Store — Detail.
+/// Scrollable Store Detail body matching WanderDesa Store — Detail.
 class StoreDetailView extends StatelessWidget {
   const StoreDetailView({
     super.key,

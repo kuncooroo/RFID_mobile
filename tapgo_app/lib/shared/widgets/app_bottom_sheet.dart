@@ -6,7 +6,7 @@ import '../design_system/sizes.dart';
 import '../design_system/spacing.dart';
 import '../design_system/text_styles.dart';
 
-/// Shows a TapGo-styled modal bottom sheet and returns its result.
+/// Shows a WanderDesa-styled modal bottom sheet and returns its result.
 Future<T?> showAppBottomSheet<T>({
   required BuildContext context,
   required Widget child,

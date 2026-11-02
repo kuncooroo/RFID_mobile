@@ -45,7 +45,7 @@ class OnboardingPageData {
   }
 }
 
-/// Default TapGo onboarding copy (Figma screens 1–3).
+/// Default WanderDesa onboarding copy (Figma screens 1–3).
 abstract final class OnboardingPages {
   static const List<OnboardingPageData> defaults = [
     OnboardingPageData(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/colors.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/radius.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
@@ -63,7 +64,7 @@ class LanguageView extends StatelessWidget {
       ),
       children: [
         Text(
-          'Choose your preferred language for the TapGo app.',
+          AppText.of(context).languageHint,
           style: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),

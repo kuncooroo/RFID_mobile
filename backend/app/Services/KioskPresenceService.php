@@ -8,6 +8,7 @@ use App\Models\KioskLocation;
 use App\Models\KioskPointLedger;
 use App\Models\KioskPresence;
 use App\Models\Member;
+use App\Models\RfidMember;
 use App\Models\WalletLedger;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -58,8 +59,8 @@ class KioskPresenceService
     }
 
     /**
-     * Gate passage: card must be bound, saldo must cover the location fare.
-     * A granted tap debits saldo, stores an optional capture, and awards points.
+     * Gate passage: an issued card with enough saldo on the chip record.
+     * Identity is optional. Points are awarded only after the card is linked.
      *
      * @return array<string, mixed>
      */
@@ -76,7 +77,7 @@ class KioskPresenceService
 
         return DB::transaction(function () use ($bound, $location, $deviceId, $photo, $cooldown, $reward) {
             $latest = KioskCheckIn::query()
-                ->where('user_id', $bound['user_id'])
+                ->where('rfid_member_id', $bound['rfid_member_id'])
                 ->where('location_id', $location->id)
                 ->where('status', 'success')
                 ->orderByDesc('checked_in_at')
@@ -84,11 +85,10 @@ class KioskPresenceService
                 ->first();
 
             if ($latest && $cooldown > 0 && $latest->checked_in_at?->gt(now()->subSeconds($cooldown))) {
-                $member = $this->memberFor($bound);
-
                 return $this->passagePayload(
                     checkIn: $latest,
-                    member: $member,
+                    member: $this->memberFor($bound),
+                    card: $this->lockCard($bound),
                     bound: $bound,
                     location: $location,
                     deviceId: $deviceId,
@@ -108,7 +108,7 @@ class KioskPresenceService
         $bound = $this->kiosk->verifyCode($rfidUid);
         $presence = KioskPresence::query()->findOrFail($presenceId);
 
-        if ((int) $presence->user_id !== (int) $bound['user_id']) {
+        if ((int) $presence->rfid_member_id !== (int) $bound['rfid_member_id']) {
             throw new DomainException('Presence tidak cocok dengan kartu RFID.', 422, 'kiosk_presence_mismatch');
         }
 
@@ -130,6 +130,7 @@ class KioskPresenceService
                 return $this->passagePayload(
                     checkIn: $existing,
                     member: $this->memberFor($bound),
+                    card: $this->lockCard($bound),
                     bound: $bound,
                     location: $location,
                     deviceId: $presence->device_id,
@@ -142,7 +143,7 @@ class KioskPresenceService
     }
 
     /**
-     * @param  array{user_id:int,name:string,rfid_uid:string,member_code:string,rfid_member_id:int}  $bound
+     * @param  array{user_id:?int,name:string,rfid_uid:string,member_code:string,rfid_member_id:int}  $bound
      * @return array<string, mixed>
      */
     private function settleGate(
@@ -153,18 +154,12 @@ class KioskPresenceService
         ?int $presenceId,
         int $reward,
     ): array {
-        $member = Member::query()->where('user_id', $bound['user_id'])->lockForUpdate()->first();
-        if (! $member) {
-            $member = Member::query()->create([
-                'user_id' => $bound['user_id'],
-                'display_name' => $bound['name'],
-                'balance' => 0,
-                'points' => 0,
-            ]);
-        }
+        $card = $this->lockCard($bound);
+        $member = $this->memberFor($bound);
+        $pointsReward = $member === null ? 0 : $reward;
 
         $fareCents = $this->cents($location->fare_amount);
-        $balanceCents = $this->cents($member->balance);
+        $balanceCents = $this->cents($card->balance);
 
         if ($balanceCents < $fareCents) {
             $denied = KioskCheckIn::query()->create([
@@ -175,7 +170,7 @@ class KioskPresenceService
                 'status' => 'denied',
                 'points_awarded' => 0,
                 'amount_charged' => 0,
-                'balance_after' => $member->balance,
+                'balance_after' => $card->balance,
                 'deny_reason' => 'insufficient_balance',
                 'checked_in_at' => now(),
             ]);
@@ -183,6 +178,7 @@ class KioskPresenceService
             return $this->passagePayload(
                 checkIn: $denied,
                 member: $member,
+                card: $card,
                 bound: $bound,
                 location: $location,
                 deviceId: $deviceId,
@@ -204,10 +200,15 @@ class KioskPresenceService
             $presenceId = (int) $presence->id;
         }
 
-        $nextBalance = ($balanceCents - $fareCents) / 100;
-        $member->balance = number_format($nextBalance, 2, '.', '');
-        $member->points = (int) $member->points + $reward;
-        $member->save();
+        $nextBalance = number_format(($balanceCents - $fareCents) / 100, 2, '.', '');
+        $card->balance = $nextBalance;
+        $card->save();
+
+        if ($member !== null) {
+            $member->balance = $nextBalance;
+            $member->points = (int) $member->points + $pointsReward;
+            $member->save();
+        }
 
         $checkIn = KioskCheckIn::query()->create([
             'user_id' => $bound['user_id'],
@@ -215,27 +216,28 @@ class KioskPresenceService
             'location_id' => $location->id,
             'presence_id' => $presenceId,
             'status' => 'success',
-            'points_awarded' => $reward,
+            'points_awarded' => $pointsReward,
             'amount_charged' => number_format($fareCents / 100, 2, '.', ''),
-            'balance_after' => $member->balance,
+            'balance_after' => $card->balance,
             'checked_in_at' => now(),
         ]);
 
         if ($fareCents > 0) {
             WalletLedger::query()->create([
                 'user_id' => $bound['user_id'],
+                'rfid_member_id' => $card->id,
                 'check_in_id' => $checkIn->id,
                 'delta' => number_format(-1 * $fareCents / 100, 2, '.', ''),
-                'balance_after' => $member->balance,
+                'balance_after' => $card->balance,
                 'reason' => 'gate_debit',
             ]);
         }
 
-        if ($reward > 0) {
+        if ($pointsReward > 0 && $member !== null) {
             KioskPointLedger::query()->create([
-                'user_id' => $bound['user_id'],
+                'user_id' => $member->user_id,
                 'check_in_id' => $checkIn->id,
-                'delta' => $reward,
+                'delta' => $pointsReward,
                 'balance_after' => (int) $member->points,
                 'reason' => 'kiosk_visit',
             ]);
@@ -244,6 +246,7 @@ class KioskPresenceService
         return $this->passagePayload(
             checkIn: $checkIn,
             member: $member,
+            card: $card,
             bound: $bound,
             location: $location,
             deviceId: $deviceId,
@@ -252,18 +255,20 @@ class KioskPresenceService
     }
 
     /**
-     * @param  array{user_id:int,name:string,member_code:string,rfid_member_id:int}  $bound
+     * @param  array{user_id:?int,name:string,member_code:string,rfid_member_id:int}  $bound
      * @return array<string, mixed>
      */
     private function passagePayload(
         KioskCheckIn $checkIn,
-        Member $member,
+        ?Member $member,
+        RfidMember $card,
         array $bound,
         KioskLocation $location,
         ?string $deviceId,
         bool $duplicate,
     ): array {
         $granted = $checkIn->status === 'success';
+        $points = (int) ($member?->points ?? 0);
         $resultCode = match (true) {
             $duplicate => 'ALREADY_CHECKED_IN',
             $granted => 'GATE_GRANTED',
@@ -287,15 +292,16 @@ class KioskPresenceService
             'status' => $granted ? 'SUCCESS' : 'DENIED',
             'deny_reason' => $checkIn->deny_reason,
             'points_awarded' => (int) $checkIn->points_awarded,
-            'points_balance' => (int) $member->points,
+            'points_balance' => $points,
             'amount_charged' => (float) $checkIn->amount_charged,
             'fare_amount' => (float) $location->fare_amount,
-            'wallet_balance' => (float) $member->balance,
+            'wallet_balance' => (float) $card->balance,
             'already_checked_in_today' => $duplicate,
             'member_name' => $bound['name'],
             'member_code' => $bound['member_code'],
+            'visitor' => $this->visitorProfile($bound),
             'has_photo' => $checkIn->presence_id !== null,
-            'user' => [
+            'user' => $bound['user_id'] === null ? null : [
                 'user_id' => $bound['user_id'],
                 'name' => $bound['name'],
                 'member_code' => $bound['member_code'],
@@ -307,20 +313,91 @@ class KioskPresenceService
             ],
             'points' => [
                 'earned' => $duplicate ? 0 : (int) $checkIn->points_awarded,
-                'balance' => (int) $member->points,
+                'balance' => $points,
             ],
             'wallet' => [
                 'charged' => $duplicate ? 0 : (float) $checkIn->amount_charged,
-                'balance' => (float) $member->balance,
+                'balance' => (float) $card->balance,
             ],
         ];
     }
 
     /**
-     * @param  array{user_id:int,name:string}  $bound
+     * @param  array{user_id:?int,name:string,rfid_member_id:int}  $bound
      */
-    private function memberFor(array $bound): Member
+    private function lockCard(array $bound): RfidMember
     {
+        $card = RfidMember::query()->whereKey($bound['rfid_member_id'])->lockForUpdate()->first();
+        if (! $card) {
+            throw new DomainException('Kartu ini belum diterbitkan.', 422, 'kiosk_card_not_issued');
+        }
+
+        return $card;
+    }
+
+    /**
+     * @param  array{user_id:?int,name:string}  $bound
+     */
+    /**
+     * Store the experience photo on a visit that was already paid.
+     *
+     * @return array<string, mixed>
+     */
+    public function attachVisitPhoto(int $checkInId, string $rfidUid, UploadedFile $photo): array
+    {
+        $bound = $this->kiosk->verifyCode($rfidUid);
+        $checkIn = KioskCheckIn::query()->findOrFail($checkInId);
+        if ((int) $checkIn->rfid_member_id !== (int) $bound['rfid_member_id']) {
+            throw new DomainException('Foto tidak cocok dengan kartu.', 422, 'kiosk_photo_mismatch');
+        }
+        if ($checkIn->status !== 'success') {
+            throw new DomainException('Kunjungan ini belum berhasil.', 422, 'kiosk_visit_not_granted');
+        }
+
+        $path = $photo->store('kiosk/presences', 'local');
+        $presence = KioskPresence::query()->create([
+            'user_id' => $bound['user_id'],
+            'rfid_member_id' => $bound['rfid_member_id'],
+            'location_id' => $checkIn->location_id,
+            'device_id' => $checkIn->presence?->device_id,
+            'photo_path' => $path,
+            'status' => 'verified',
+            'captured_at' => now(),
+        ]);
+        $checkIn->presence_id = $presence->id;
+        $checkIn->save();
+
+        return [
+            'check_in_id' => $checkIn->id,
+            'presence_id' => $presence->id,
+            'has_photo' => true,
+        ];
+    }
+
+    /**
+     * @param  array{user_id:?int,name:string}  $bound
+     * @return array{name:string,age:?int,origin:?string,gender:?string}
+     */
+    private function visitorProfile(array $bound): array
+    {
+        $user = $bound['user_id'] === null
+            ? null
+            : \App\Models\User::query()->find($bound['user_id']);
+
+        return [
+            'name' => $user?->name ?? $bound['name'],
+            'age' => $user?->age,
+            'origin' => $user?->origin,
+            'gender' => $user?->gender,
+        ];
+    }
+
+    private function memberFor(array $bound): ?Member
+    {
+        if ($bound['user_id'] === null) {
+            return null;
+        }
+
         return Member::query()->firstOrCreate(
             ['user_id' => $bound['user_id']],
             ['display_name' => $bound['name'], 'balance' => 0, 'points' => 0],

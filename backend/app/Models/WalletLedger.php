@@ -9,6 +9,9 @@ class WalletLedger extends Model
 {
     protected $fillable = [
         'user_id',
+        'rfid_member_id',
+        'admin_id',
+        'shift_id',
         'check_in_id',
         'delta',
         'balance_after',
@@ -28,8 +31,28 @@ class WalletLedger extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function rfidMember(): BelongsTo
+    {
+        return $this->belongsTo(RfidMember::class);
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class);
+    }
+
     public function checkIn(): BelongsTo
     {
         return $this->belongsTo(KioskCheckIn::class, 'check_in_id');
+    }
+
+    public static function reasonLabel(?string $reason): string
+    {
+        return match ($reason) {
+            'admin_topup' => 'Top-up admin',
+            'cashier_topup' => 'Top-up kasir',
+            'gate_debit' => 'Potongan tiket',
+            default => $reason ? str_replace('_', ' ', $reason) : 'Penyesuaian',
+        };
     }
 }

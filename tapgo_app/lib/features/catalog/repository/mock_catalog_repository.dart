@@ -3,7 +3,7 @@ import '../models/catalog_feed.dart';
 import '../models/category.dart';
 import 'catalog_repository.dart';
 
-/// Seeded catalog matching TapGo Homescreen — Category banners.
+/// Seeded catalog matching WanderDesa Homescreen — Category banners.
 class MockCatalogRepository implements CatalogRepository {
   MockCatalogRepository({
     this.delay = const Duration(milliseconds: 400),
@@ -134,7 +134,7 @@ const _seedProducts = <Product>[
   Product(
     id: 'cp3',
     name: 'Pleated Midi Dress',
-    brand: 'TapGo',
+    brand: 'WanderDesa',
     price: 98,
     categoryId: 'cat-clothes',
     rating: 4.8,

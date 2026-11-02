@@ -38,7 +38,7 @@ return new class extends Migration
 
         DB::table('kiosk_locations')->update(['fare_amount' => 10000]);
 
-        $demoId = DB::table('users')->where('email', 'demo@tapgo.test')->value('id');
+        $demoId = DB::table('users')->where('email', 'demo@wanderdesa.test')->value('id');
         if ($demoId) {
             DB::table('members')->where('user_id', $demoId)->update(['balance' => 100000]);
         }

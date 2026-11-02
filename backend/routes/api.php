@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Order\OrderController;
 use App\Http\Controllers\Api\Product\ProductController;
 use App\Http\Controllers\Api\Profile\ProfileController;
 use App\Http\Controllers\Api\Profile\SettingsController;
+use App\Http\Controllers\Api\Rfid\CardLinkController;
 use App\Http\Controllers\Api\Rfid\RfidVerificationController;
 use App\Http\Controllers\Api\Store\StoreController;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/register', [KioskController::class, 'register'])->middleware('throttle:20,1');
         Route::post('/face-enrollment', [KioskController::class, 'enrollFace'])->middleware('throttle:20,1');
         Route::post('/visit', [KioskController::class, 'visit']);
+        Route::post('/visit/{checkIn}/photo', [KioskController::class, 'attachVisitPhoto']);
+        Route::post('/profile', [KioskController::class, 'updateProfile']);
         Route::post('/upload-photo', [KioskController::class, 'uploadPhoto']);
         Route::post('/presence', [KioskController::class, 'recordPresence']);
         Route::post('/check-in', [KioskController::class, 'checkIn']);
@@ -115,6 +118,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/experiences', [ExperienceController::class, 'index']);
         Route::get('/experiences/{checkIn}/photo', [ExperienceController::class, 'photo']);
         Route::post('/points/redeem', [PointRedeemController::class, 'store'])->middleware('throttle:20,1');
+
+        Route::get('/user/card', [CardLinkController::class, 'show']);
+        Route::post('/user/card', [CardLinkController::class, 'store'])->middleware('throttle:10,1');
 
         Route::post('/rfid/verify', [RfidVerificationController::class, 'verify'])
             ->middleware('throttle:10,1');

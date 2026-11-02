@@ -42,6 +42,10 @@
     <input type="number" step="0.01" min="0" name="price" value="{{ old('price', $product?->price) }}" required>
 </label>
 <label>
+    HPP
+    <input type="number" step="0.01" min="0" name="cost_amount" value="{{ old('cost_amount', $product?->cost_amount ?? 0) }}" required>
+</label>
+<label>
     Discount price
     <input type="number" step="0.01" min="0" name="discount_price" value="{{ old('discount_price', $product?->discount_price) }}">
 </label>

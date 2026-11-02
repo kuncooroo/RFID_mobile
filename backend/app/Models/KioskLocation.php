@@ -11,6 +11,7 @@ class KioskLocation extends Model
         'code',
         'name',
         'fare_amount',
+        'cost_amount',
         'is_active',
     ];
 
@@ -18,6 +19,7 @@ class KioskLocation extends Model
     {
         return [
             'fare_amount' => 'decimal:2',
+            'cost_amount' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

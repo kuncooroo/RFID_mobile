@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tapgo.app"
+    namespace = "com.wanderdesa.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.tapgo.app"
+        applicationId = "com.wanderdesa.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

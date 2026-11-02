@@ -63,7 +63,7 @@ class LocalAuthRepository implements AuthRepository {
     );
 
     // Persist credentials for later login, but do not imply an active session
-    // until the controller decides to authenticate (TapGo: success → login).
+    // until the controller decides to authenticate (WanderDesa: success → login).
     await _storage.write(_userKey, jsonEncode(user.toJson()));
     return AuthResult(
       user: user,
@@ -78,7 +78,7 @@ class LocalAuthRepository implements AuthRepository {
     final user = User(
       id: 'local-${provider.name}',
       name: '$label User',
-      email: '${provider.name}@tapgo.app',
+      email: '${provider.name}@wanderdesa.app',
     );
     return _persist(user);
   }

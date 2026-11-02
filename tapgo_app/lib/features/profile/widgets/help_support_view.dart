@@ -5,7 +5,7 @@ import '../../../shared/widgets/app_settings_tile.dart';
 
 /// Help and Support body (Figma `1:38`).
 ///
-/// TapGo layout: stacked settings tiles for contact channels
+/// WanderDesa layout: stacked settings tiles for contact channels
 /// (Customer Service, Website, Whatsapp, Facebook, Twitter).
 class HelpSupportView extends StatelessWidget {
   const HelpSupportView({

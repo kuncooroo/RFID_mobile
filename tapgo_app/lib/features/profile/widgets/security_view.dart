@@ -57,7 +57,7 @@ class SecurityView extends StatelessWidget {
       ),
       children: [
         Text(
-          'Protect your TapGo account with biometrics, two-factor authentication, and a strong password.',
+          'Protect your WanderDesa account with biometrics, two-factor authentication, and a strong password.',
           style: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),

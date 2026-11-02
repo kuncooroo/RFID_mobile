@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'colors.dart';
 
-/// TapGo typography based on Plus Jakarta Sans from the Figma kit.
+/// WanderDesa typography based on Plus Jakarta Sans from the Figma kit.
 abstract final class AppTextStyles {
   static String? get _fontFamily => GoogleFonts.plusJakartaSans().fontFamily;
 
@@ -117,7 +117,7 @@ abstract final class AppTextStyles {
     color: AppColors.textSecondary,
   );
 
-  // Semantic aliases used across TapGo screens
+  // Semantic aliases used across WanderDesa screens
   static TextStyle get screenTitle => headlineLarge;
 
   static TextStyle get sectionTitle => headlineSmall;
@@ -156,7 +156,7 @@ abstract final class AppTextStyles {
 
   static TextStyle get chip => labelMedium;
 
-  /// Material 3 [TextTheme] mapped to TapGo styles.
+  /// Material 3 [TextTheme] mapped to WanderDesa styles.
   static TextTheme get textTheme => TextTheme(
     displayLarge: displayLarge,
     displayMedium: displayMedium,

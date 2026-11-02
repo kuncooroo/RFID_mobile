@@ -1,4 +1,4 @@
-# RFID / TapGo REST API Documentation
+# RFID / WanderDesa REST API Documentation
 
 **Version:** `v1`  
 **Base URL:** `http://127.0.0.1:8000/api/v1`  
@@ -46,7 +46,7 @@ All endpoints return JSON. Protected routes require a Sanctum personal access to
 
 | Field | Value |
 |-------|--------|
-| Email | `demo@tapgo.test` |
+| Email | `demo@wanderdesa.test` |
 | Password | `password` |
 | RFID member | `MEM-1001` or `RFID-DEMO-001` |
 
@@ -368,7 +368,7 @@ GET /api/v1/products?q=demo&category_id=2&store_id=1&min_price=40&max_price=80&s
 
 ```json
 {
-  "identifier": "demo@tapgo.test",
+  "identifier": "demo@wanderdesa.test",
   "password": "password"
 }
 ```
@@ -414,7 +414,7 @@ GET /api/v1/products?q=demo&category_id=2&store_id=1&min_price=40&max_price=80&s
 **Request**
 
 ```json
-{ "email": "demo@tapgo.test" }
+{ "email": "demo@wanderdesa.test" }
 ```
 
 **Response `200`**
@@ -451,7 +451,7 @@ GET /api/v1/products?q=demo&category_id=2&store_id=1&min_price=40&max_price=80&s
 
 ```json
 {
-  "email": "demo@tapgo.test",
+  "email": "demo@wanderdesa.test",
   "token": "reset-token-from-email",
   "password": "newpass12",
   "password_confirmation": "newpass12"
@@ -1264,7 +1264,7 @@ captured_image=<file>
 {
   "id": 1,
   "name": "Demo User",
-  "email": "demo@tapgo.test",
+  "email": "demo@wanderdesa.test",
   "phone": "+10000000001",
   "avatar_url": null,
   "onboarding_completed_at": "2026-08-08T01:00:00+00:00",
@@ -1299,7 +1299,7 @@ captured_image=<file>
   "id": 1,
   "name": "Demo Product 1",
   "slug": "demo-product-1-xxxx",
-  "brand": "TapGo",
+  "brand": "WanderDesa",
   "description": "...",
   "price": 50.99,
   "discount_price": null,
@@ -1334,7 +1334,7 @@ captured_image=<file>
       "quantity": 2,
       "line_total": 101.98,
       "image_url": "https://...",
-      "brand": "TapGo",
+      "brand": "WanderDesa",
       "color_name": "Black",
       "size": "M",
       "is_selected": true,

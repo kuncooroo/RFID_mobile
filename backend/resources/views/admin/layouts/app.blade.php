@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin') — TapGo RFID</title>
+    <title>@yield('title', 'Admin') — WanderDesa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,9 +18,9 @@
     <aside class="sidebar" id="admin-sidebar" aria-label="Admin navigation">
         <div class="sidebar-mobile-head">
             <div class="brand brand-compact">
-                <span class="brand-mark">T</span>
+                <span class="brand-mark">W</span>
                 <div>
-                    <strong>TapGo Admin</strong>
+                    <strong>WanderDesa Admin</strong>
                 </div>
             </div>
             <button type="button" class="icon-btn sidebar-close" id="sidebar-close" aria-label="Close menu">
@@ -29,30 +29,61 @@
         </div>
 
         <div class="brand brand-desktop">
-            <span class="brand-mark">T</span>
+            <span class="brand-mark">W</span>
             <div>
-                <strong>TapGo Admin</strong>
+                <strong>WanderDesa Admin</strong>
             </div>
             <span class="brand-chevron" aria-hidden="true">▾</span>
         </div>
 
+        @php $adminUser = auth('admin')->user(); @endphp
         <nav class="nav">
+            @if($adminUser?->allows('dashboard.view'))
             <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
+            @endif
 
-            <div class="nav-section">Work</div>
-            <a href="{{ route('admin.visitors.index') }}" class="{{ request()->routeIs('admin.visitors.*') ? 'active' : '' }}">User Management</a>
-            <a href="{{ route('admin.rfid.bind') }}" class="{{ request()->routeIs('admin.rfid.bind*') ? 'active' : '' }}">Bind RFID Card</a>
-            <a href="{{ route('admin.rfid.scans') }}" class="{{ request()->routeIs('admin.rfid.scans') ? 'active' : '' }}">RFID Scan Log</a>
+            <div class="nav-section">Operasional</div>
+            @if($adminUser?->allows('visitors.manage'))
+            <a href="{{ route('admin.visitors.index') }}" class="{{ request()->routeIs('admin.visitors.*') ? 'active' : '' }}">Pengunjung</a>
+            @endif
+            @if($adminUser?->allows('experiences.manage'))
+            <a href="{{ route('admin.experiences.index') }}" class="{{ request()->routeIs('admin.experiences.*') ? 'active' : '' }}">Experience</a>
+            @endif
+            @if($adminUser?->allows('rfid.manage'))
+            <a href="{{ route('admin.rfid.bind') }}" class="{{ request()->routeIs('admin.rfid.bind*') ? 'active' : '' }}">Kartu RFID</a>
+            <a href="{{ route('admin.rfid.scans') }}" class="{{ request()->routeIs('admin.rfid.scans') ? 'active' : '' }}">Log scan</a>
+            @endif
 
-            <div class="nav-section">Store</div>
-            <a href="{{ route('admin.products.index') }}" class="{{ request()->routeIs('admin.products.*') ? 'active' : '' }}">Products</a>
-            <a href="{{ route('admin.orders.index') }}" class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Orders</a>
-            <a href="{{ route('admin.analytics') }}" class="{{ request()->routeIs('admin.analytics') ? 'active' : '' }}">Analytics</a>
+            <div class="nav-section">Tiket dan toko</div>
+            @if($adminUser?->allows('products.manage'))
+            <a href="{{ route('admin.products.index') }}" class="{{ request()->routeIs('admin.products.*') ? 'active' : '' }}">Produk</a>
+            @endif
+            @if($adminUser?->allows('orders.manage'))
+            <a href="{{ route('admin.orders.index') }}" class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">Pesanan</a>
+            @endif
+            @if($adminUser?->allows('analytics.view'))
+            <a href="{{ route('admin.analytics') }}" class="{{ request()->routeIs('admin.analytics') ? 'active' : '' }}">Analitik</a>
+            @endif
 
-            @if(auth('admin')->user()?->isSuperadmin())
-            <div class="nav-section">Team</div>
-            <a href="{{ route('admin.staff.index') }}" class="{{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">Admin Management</a>
-            <a href="{{ route('admin.activity.index') }}" class="{{ request()->routeIs('admin.activity.*') ? 'active' : '' }}">Activity Log</a>
+            @if($adminUser?->allows('cashier.manage') || $adminUser?->allows('finance.manage'))
+            <div class="nav-section">Keuangan</div>
+            @endif
+            @if($adminUser?->allows('cashier.manage') || $adminUser?->allows('finance.manage'))
+            <a href="{{ route('admin.cashier') }}" class="{{ request()->routeIs('admin.cashier') ? 'active' : '' }}">Kasir</a>
+            @endif
+            @if($adminUser?->allows('finance.manage'))
+            <a href="{{ route('admin.cashflow') }}" class="{{ request()->routeIs('admin.cashflow') ? 'active' : '' }}">Arus uang</a>
+            @endif
+
+            <div class="nav-section">Tim</div>
+            @if($adminUser?->allows('staff.manage'))
+            <a href="{{ route('admin.staff.index') }}" class="{{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">Akun staf</a>
+            @endif
+            @if($adminUser?->allows('permissions.manage'))
+            <a href="{{ route('admin.permissions.edit') }}" class="{{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}">Izin peran</a>
+            @endif
+            @if($adminUser?->allows('activity.view'))
+            <a href="{{ route('admin.activity.index') }}" class="{{ request()->routeIs('admin.activity.*') ? 'active' : '' }}">Log aktivitas</a>
             @endif
         </nav>
 
@@ -97,6 +128,10 @@
 
         @if(session('success'))
         <div class="alert success">{{ session('success') }}</div>
+        @endif
+
+        @if(session('error'))
+        <div class="alert danger">{{ session('error') }}</div>
         @endif
 
         @if($errors->any())

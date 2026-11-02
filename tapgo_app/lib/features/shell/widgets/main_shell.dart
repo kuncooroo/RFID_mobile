@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../core/router/app_routes.dart';
 import '../../../shared/design_system/app_icons.dart';
-import '../../../shared/design_system/colors.dart';
-import '../../../shared/design_system/sizes.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/widgets/app_bottom_navigation.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../models/shell_tab.dart';
@@ -40,25 +37,26 @@ class _MainShellState extends ConsumerState<MainShell> {
     final badges = ref.watch(shellControllerProvider).badges;
     final current = ShellTab.fromIndex(widget.navigationShell.currentIndex);
 
+    final copy = AppText.of(context);
     final items = <AppBottomNavItem>[
-      const AppBottomNavItem(
-        label: 'Home',
+      AppBottomNavItem(
+        label: copy.home,
         icon: Icons.home_outlined,
         activeIcon: Icons.home_rounded,
       ),
       AppBottomNavItem(
-        label: 'My Order',
+        label: copy.myOrder,
         icon: Icons.shopping_bag_outlined,
         activeIcon: Icons.shopping_bag_rounded,
         badgeCount: badges.activeOrders > 0 ? badges.activeOrders : null,
       ),
-      const AppBottomNavItem(
-        label: 'Favorite',
+      AppBottomNavItem(
+        label: copy.favorite,
         icon: Icons.favorite_border_rounded,
         activeIcon: Icons.favorite_rounded,
       ),
-      const AppBottomNavItem(
-        label: 'My Profile',
+      AppBottomNavItem(
+        label: copy.myProfile,
         icon: Icons.person_outline_rounded,
         activeIcon: Icons.person_rounded,
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/app_assets.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/design_system/spacing.dart';
 import '../../../shared/design_system/text_styles.dart';
@@ -81,8 +82,8 @@ class _ActiveList extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
         child: AppEmptyState(
-          title: 'No active orders',
-          message: 'When you place an order, you can track it here.',
+          title: AppText.of(context).emptyOrdersTitle,
+          message: AppText.of(context).emptyOrdersBody,
           illustrationAsset: AppAssets.emptyOrders,
           icon: Icons.local_shipping_outlined,
           actionLabel: 'Browse Home',
@@ -120,11 +121,11 @@ class _HistoryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
         child: AppEmptyState(
-          title: 'No order history',
-          message: 'Completed and cancelled orders will appear here.',
+          title: AppText.of(context).emptyHistoryTitle,
+          message: AppText.of(context).emptyHistoryBody,
           illustrationAsset: AppAssets.emptyOrders,
           icon: Icons.receipt_long_outlined,
         ),

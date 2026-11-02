@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/app_assets.dart';
+import '../../../shared/l10n/app_text.dart';
 import '../../../shared/design_system/colors.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_state.dart';
@@ -47,9 +48,8 @@ class NotificationsView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 48),
               child: AppEmptyState(
-                title: 'No notifications',
-                message:
-                    'Updates about orders, chats, and offers will show up here.',
+                title: AppText.of(context).emptyNotificationsTitle,
+                message: AppText.of(context).emptyNotificationsBody,
                 illustrationAsset: AppAssets.emptyNotifications,
                 icon: Icons.notifications_none_rounded,
                 actionLabel: 'Browse Home',

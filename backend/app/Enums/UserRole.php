@@ -7,24 +7,31 @@ enum UserRole: string
     case Visitor = 'visitor';
     case Admin = 'admin';
     case Superadmin = 'superadmin';
+    case Finance = 'finance';
+    case Staff = 'staff';
 
     public function label(): string
     {
         return match ($this) {
-            self::Visitor => 'Visitor',
+            self::Visitor => 'Pengunjung',
             self::Admin => 'Admin',
             self::Superadmin => 'Superadmin',
+            self::Finance => 'Keuangan',
+            self::Staff => 'Staff',
         };
     }
 
     public function isStaff(): bool
     {
-        return $this === self::Admin || $this === self::Superadmin;
+        return $this !== self::Visitor;
     }
 
     /** @return list<string> */
     public static function staffValues(): array
     {
-        return [self::Admin->value, self::Superadmin->value];
+        return array_values(array_map(
+            fn (self $role) => $role->value,
+            array_filter(self::cases(), fn (self $role) => $role->isStaff()),
+        ));
     }
 }

@@ -58,7 +58,7 @@ class SplashView extends StatelessWidget {
             child: Column(
               children: [
                 const Spacer(flex: 3),
-                const SplashLogo(),
+                const SplashLogo(size: 240),
                 const Spacer(flex: 2),
                 _Footer(
                   state: state,

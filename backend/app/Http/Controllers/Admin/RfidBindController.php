@@ -77,6 +77,7 @@ class RfidBindController extends Controller
                     'user_id' => $user->id,
                     'rfid_uid' => $rfidUid,
                     'member_code' => $memberCode,
+                    'card_number' => $conflict->card_number ?: RfidMember::generateCardNumber(),
                     'is_active' => $isActive,
                 ]);
 
@@ -88,6 +89,7 @@ class RfidBindController extends Controller
                 [
                     'rfid_uid' => $rfidUid,
                     'member_code' => $memberCode,
+                    'card_number' => $user->rfidMember?->card_number ?: RfidMember::generateCardNumber(),
                     'is_active' => $isActive,
                 ],
             );
@@ -101,8 +103,51 @@ class RfidBindController extends Controller
             $user->rfidMember,
         );
 
+        $number = $user->rfidMember?->card_number;
+
         return redirect()
-            ->route('admin.visitors.index')
-            ->with('success', "RFID card {$rfidUid} linked to {$user->name}.");
+            ->route('admin.visitors.show', $user)
+            ->with('success', "Kartu {$rfidUid} terhubung ke {$user->name}. Nomor kartu: {$number}");
+    }
+
+    public function stock(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'rfid_uid' => ['required', 'string', 'max:100'],
+        ]);
+
+        $rfidUid = trim($data['rfid_uid']);
+        $card = RfidMember::query()->where('rfid_uid', $rfidUid)->first();
+
+        if ($card !== null && $card->user_id !== null) {
+            return back()->withInput()->withErrors([
+                'stock_rfid_uid' => 'Kartu ini sudah terhubung ke pengunjung.',
+            ]);
+        }
+
+        if ($card === null) {
+            $card = RfidMember::query()->create([
+                'user_id' => null,
+                'member_code' => 'STK-'.Str::upper(Str::random(6)),
+                'rfid_uid' => $rfidUid,
+                'is_active' => true,
+                'balance' => 0,
+            ]);
+        } elseif (! $card->is_active || $card->card_number === null) {
+            $card->update([
+                'is_active' => true,
+                'card_number' => $card->card_number ?: RfidMember::generateCardNumber(),
+            ]);
+        }
+
+        AdminActivityLogger::log(
+            'rfid.stock',
+            "Stocked RFID {$rfidUid} as {$card->card_number}",
+            $card,
+        );
+
+        return redirect()
+            ->route('admin.rfid.bind')
+            ->with('success', "Kartu stok {$rfidUid} siap. Nomor 16 digit: {$card->card_number}. Hubungkan lewat aplikasi atau daftar sendiri di kiosk.");
     }
 }

@@ -20,6 +20,9 @@ class User extends Authenticatable
         'name',
         'email',
         'phone',
+        'age',
+        'origin',
+        'gender',
         'password',
         'role',
         'avatar_path',
@@ -37,6 +40,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
             'password' => 'hashed',
+            'age' => 'integer',
             'role' => UserRole::class,
         ];
     }
@@ -119,5 +123,10 @@ class User extends Authenticatable
     public function faceEnrollments(): HasMany
     {
         return $this->hasMany(UserFaceEnrollment::class);
+    }
+
+    public function experiences(): HasMany
+    {
+        return $this->hasMany(UserExperience::class);
     }
 }

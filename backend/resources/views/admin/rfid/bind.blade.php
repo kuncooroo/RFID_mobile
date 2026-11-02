@@ -2,7 +2,7 @@
 
 @section('title', 'Bind RFID Card')
 @section('heading', 'Bind RFID Card')
-@section('subheading', 'Kasir form: tap USB RFID reader into the UID field, then link it to a visitor.')
+@section('subheading', 'Kasir: tempel kartu, hubungkan ke pengunjung. Nomor 16 digit untuk aplikasi dibuat otomatis.')
 
 @section('content')
 <div class="panel">
@@ -52,8 +52,34 @@
         </label>
 
         <div class="full actions">
-            <button class="btn" type="submit">Link / Bind RFID Card</button>
+            <button class="btn" type="submit">Hubungkan ke pengunjung</button>
             <a class="btn secondary" href="{{ route('admin.visitors.index') }}">Back to visitors</a>
+        </div>
+    </form>
+</div>
+
+<div class="panel" style="margin-top: 16px;">
+    <h2 style="margin-top: 0;">Catat kartu stok</h2>
+    <p class="help">Untuk kartu yang belum punya pemilik. Nomor 16 digit dipakai di aplikasi, atau pengunjung daftar sendiri di kiosk.</p>
+    <form method="POST" action="{{ route('admin.rfid.stock') }}" class="form-grid">
+        @csrf
+        <label class="full">
+            RFID UID
+            <input
+                type="text"
+                name="rfid_uid"
+                id="stock_rfid_uid"
+                value="{{ old('rfid_uid') }}"
+                placeholder="Tap kartu stok..."
+                required
+                autocomplete="off"
+            >
+            @error('stock_rfid_uid')
+                <span class="help" style="color:#c62828;">{{ $message }}</span>
+            @enderror
+        </label>
+        <div class="full actions">
+            <button class="btn secondary" type="submit">Simpan kartu stok</button>
         </div>
     </form>
 </div>
@@ -67,8 +93,9 @@
   // Keep focus on the RFID field for USB wedge readers.
   input.focus();
   document.addEventListener('click', () => {
-    if (document.activeElement?.tagName === 'SELECT') return;
-    if (document.activeElement?.tagName === 'BUTTON') return;
+    const active = document.activeElement;
+    if (active?.tagName === 'SELECT' || active?.tagName === 'BUTTON') return;
+    if (active?.id === 'stock_rfid_uid') return;
     input.focus();
   });
 })();

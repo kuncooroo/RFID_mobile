@@ -22,8 +22,11 @@
         <label>
             Role
             <select name="role" required>
-                <option value="admin" @selected(old('role') === 'admin')>Admin</option>
-                <option value="superadmin" @selected(old('role') === 'superadmin')>Superadmin</option>
+                @foreach(\App\Enums\UserRole::cases() as $role)
+                    @if($role->isStaff())
+                        <option value="{{ $role->value }}" @selected(old('role') === $role->value)>{{ $role->label() }}</option>
+                    @endif
+                @endforeach
             </select>
         </label>
         <label class="full">

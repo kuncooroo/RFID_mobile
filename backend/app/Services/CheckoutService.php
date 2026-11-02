@@ -77,16 +77,16 @@ class CheckoutService
             ]);
 
             foreach ($selected as $item) {
+                $product = Product::query()->lockForUpdate()->findOrFail($item->product_id);
                 $order->items()->create([
                     'product_id' => $item->product_id,
                     'name' => $item->name,
                     'unit_price' => $item->unit_price,
+                    'cost_amount' => $product->cost_amount,
                     'quantity' => $item->quantity,
                     'image_path' => $item->image_path,
                     'variant_label' => trim(implode(' / ', array_filter([$item->color_name, $item->size]))),
                 ]);
-
-                $product = Product::query()->lockForUpdate()->findOrFail($item->product_id);
                 $this->products->update($product, [
                     'stock' => max(0, $product->stock - $item->quantity),
                 ]);

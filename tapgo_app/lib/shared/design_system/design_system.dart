@@ -1,4 +1,4 @@
-/// TapGo design system exports.
+/// WanderDesa design system exports.
 library;
 
 export 'app_assets.dart';
